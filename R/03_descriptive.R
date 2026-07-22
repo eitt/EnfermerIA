@@ -87,38 +87,85 @@ for (v in continuous_vars) {
   save_plot_300(p, file.path(FIGURE_DIR, paste0("continuous_", v, ".png")))
 }
 
-# Categorical-variable figures.
+# Categorical-variable figures. Categories are displayed from the smallest
+# percentage at the top to the largest percentage at the bottom.
 for (v in categorical_vars) {
-  plot_df <- raw_data |> dplyr::count(category = factor(.data[[v]]), name = "n") |>
-    dplyr::mutate(percent = n / sum(n))
-  p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = forcats::fct_reorder(category, n), y = percent)) +
+  plot_df <- raw_data |>
+    dplyr::count(category = factor(.data[[v]]), name = "n") |>
+    dplyr::mutate(percent = n / sum(n),
+                  category = forcats::fct_reorder(category, n, .desc = TRUE))
+  p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = category, y = percent)) +
     ggplot2::geom_col(fill = PALETTE_OKABE_ITO[["sky_blue"]]) +
     ggplot2::coord_flip() +
-    ggplot2::scale_y_continuous(labels = scales::percent_format(accuracy = 1), expand = ggplot2::expansion(mult = c(0, .08))) +
-    ggplot2::geom_text(ggplot2::aes(label = scales::percent(percent, accuracy = 0.1)), hjust = -0.05, size = 3.5) +
+    ggplot2::scale_y_continuous(labels = scales::percent_format(accuracy = 1),
+                               expand = ggplot2::expansion(mult = c(0, .08))) +
+    ggplot2::geom_text(ggplot2::aes(label = scales::percent(percent, accuracy = 0.1)),
+                       hjust = -0.05, size = 3.5) +
     ggplot2::labs(title = stringr::str_to_title(stringr::str_replace_all(v, "_", " ")),
-                  x = NULL, y = "Percentage") + theme_accessible()
+                  x = NULL, y = "Percentage") +
+    theme_accessible()
   save_plot_300(p, file.path(FIGURE_DIR, paste0("categorical_", v, ".png")))
+}
+append_audit_log("plot ordering", "categorical bar plots",
+                 "Categories ordered from smallest at the top to largest at the bottom")
+
+# Extract the numeric suffix so item rows can be displayed in ascending order
+# from top to bottom, regardless of lexicographic variable-name ordering.
+item_number <- function(x) {
+  suppressWarnings(as.integer(stringr::str_extract(x, "[0-9]+$")))
 }
 
 # Likert item distributions, one file per scale.
 plot_likert_scale <- function(data, items, title, filename) {
-  long <- data |> dplyr::select(dplyr::all_of(items)) |>
+  item_levels_top_to_bottom <- items[order(item_number(items))]
+  # coord_flip() displays the first factor level at the bottom, so reverse the
+  # factor levels to show the smallest item number at the top.
+  item_levels_for_plot <- rev(item_levels_top_to_bottom)
+
+  long <- data |>
+    dplyr::select(dplyr::all_of(items)) |>
     tidyr::pivot_longer(dplyr::everything(), names_to = "item", values_to = "response") |>
     dplyr::filter(!is.na(response)) |>
-    dplyr::count(item, response, name = "n") |>
-    dplyr::group_by(item) |> dplyr::mutate(percent = n / sum(n)) |> dplyr::ungroup()
-  p <- ggplot2::ggplot(long, ggplot2::aes(x = item, y = percent, fill = factor(response))) +
-    ggplot2::geom_col(position = "stack") + ggplot2::coord_flip() +
-    ggplot2::scale_fill_manual(values = c(
-      "1" = PALETTE_OKABE_ITO[["vermillion"]], "2" = PALETTE_OKABE_ITO[["orange"]],
-      "3" = "#BDBDBD", "4" = PALETTE_OKABE_ITO[["sky_blue"]], "5" = PALETTE_OKABE_ITO[["blue"]]
-    ), name = "Response") +
+    dplyr::mutate(
+      item = factor(item, levels = item_levels_for_plot),
+      response = factor(response, levels = 1:5, ordered = TRUE)
+    ) |>
+    dplyr::count(item, response, name = "n", .drop = FALSE) |>
+    dplyr::group_by(item) |>
+    dplyr::mutate(percent = n / sum(n)) |>
+    dplyr::ungroup()
+
+  p <- ggplot2::ggplot(long, ggplot2::aes(x = item, y = percent, fill = response)) +
+    # reverse = TRUE places response 1 at the left and response 5 at the right.
+    ggplot2::geom_col(position = ggplot2::position_stack(reverse = TRUE)) +
+    ggplot2::coord_flip() +
+    ggplot2::scale_fill_manual(
+      values = c(
+        "1" = PALETTE_OKABE_ITO[["vermillion"]],
+        "2" = PALETTE_OKABE_ITO[["orange"]],
+        "3" = "#BDBDBD",
+        "4" = PALETTE_OKABE_ITO[["sky_blue"]],
+        "5" = PALETTE_OKABE_ITO[["blue"]]
+      ),
+      breaks = as.character(1:5),
+      name = "Response",
+      drop = FALSE
+    ) +
     ggplot2::scale_y_continuous(labels = scales::percent_format()) +
-    ggplot2::labs(title = title, x = NULL, y = "Percentage") + theme_accessible()
-  save_plot_300(p, file.path(FIGURE_DIR, filename), width = 10, height = max(6, length(items) * .34))
+    ggplot2::labs(title = title, x = NULL, y = "Percentage") +
+    theme_accessible()
+  save_plot_300(p, file.path(FIGURE_DIR, filename), width = 10,
+                height = max(6, length(items) * .34))
 }
 
-plot_likert_scale(raw_data, ATT_POS_ITEMS, "Positive attitudes toward AI: item distributions", "likert_attitude_positive.png")
-plot_likert_scale(raw_data, ATT_NEG_ITEMS, "Negative attitudes toward AI: raw item distributions", "likert_attitude_negative_raw.png")
-plot_likert_scale(raw_data, COMP_ALL_ITEMS, "AI competence: item distributions", "likert_ai_competence.png")
+plot_likert_scale(raw_data, ATT_POS_ITEMS,
+                  "Positive attitudes toward AI: item distributions",
+                  "likert_attitude_positive.png")
+plot_likert_scale(raw_data, ATT_NEG_ITEMS,
+                  "Negative attitudes toward AI: raw item distributions",
+                  "likert_attitude_negative_raw.png")
+plot_likert_scale(raw_data, COMP_ALL_ITEMS,
+                  "AI competence: item distributions",
+                  "likert_ai_competence.png")
+append_audit_log("plot ordering", "Likert plots",
+                 "Items ordered by ascending item number from top to bottom; response colors ordered 1 to 5 from left to right")
