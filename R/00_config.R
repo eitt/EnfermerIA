@@ -24,10 +24,18 @@ FIG_WIDTH <- 8.5
 FIG_HEIGHT <- 5.5
 BASE_SIZE <- 12
 
-# Analysis inclusion rule. Change to 3 or 4 for stricter attention-check filtering.
+# Analysis inclusion rules.
 MIN_ATTENTION_TOTAL <- 0
 REQUIRE_CONSENT <- TRUE
 REQUIRE_COMMITMENT <- FALSE
+
+# A participant must answer at least this proportion of items in each scale set.
+# Rows below the threshold are excluded only from analyses requiring that scale.
+MIN_VALID_ITEM_PROP <- 0.80
+
+# Split-sample CFA validation to assess stability and possible overfitting.
+CFA_TRAIN_PROP <- 0.70
+CFA_CV_SEED <- 20260722
 
 # Quadrant cut points: "mean" or "median".
 QUADRANT_CUT <- "mean"
