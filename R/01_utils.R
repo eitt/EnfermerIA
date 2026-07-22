@@ -71,9 +71,15 @@ missingness_summary <- function(data, variables = names(data)) {
 }
 
 matrix_to_table <- function(mat, row_name = "variable") {
+  if (is.null(mat) || length(mat) == 0 || nrow(mat) == 0 || ncol(mat) == 0) {
+    return(tibble::tibble(!!row_name := character(0)))
+  }
+  rn <- rownames(mat)
+  if (is.null(rn)) rn <- as.character(seq_len(nrow(mat)))
   out <- as.data.frame(mat, check.names = FALSE)
-  out[[row_name]] <- rownames(mat)
-  out |> dplyr::select(dplyr::all_of(row_name), dplyr::everything())
+  out <- tibble::rownames_to_column(out, var = row_name)
+  out[[row_name]] <- rn
+  out
 }
 
 safe_polychoric <- function(data, items) {
@@ -139,7 +145,6 @@ write_workbook_safely <- function(sheets, path) {
     openxlsx::setColWidths(wb, sheet_name, cols = 1:ncol(value), widths = "auto")
   }
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
-}
 }
 
 `%||%` <- function(x, y) if (is.null(x)) y else x
