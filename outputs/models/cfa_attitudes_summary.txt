@@ -1,0 +1,229 @@
+lavaan 0.7-2 ended normally after 27 iterations
+
+  Estimator                                       DWLS
+  Optimization method                           NLMINB
+  Number of model parameters                       101
+
+  Number of observations                          1211
+  Number of missing patterns                         1
+
+Model Test User Model:
+                                              Standard      Scaled
+  Test Statistic                              2521.986    2414.908
+  Degrees of freedom                               169         169
+  P-value (Unknown)                                 NA       0.000
+  Scaling correction factor                                  1.071
+  Shift parameter                                           59.096
+    simple second-order correction                                
+
+Model Test Baseline Model:
+
+  Test statistic                             26686.987   11378.913
+  Degrees of freedom                               190         190
+  P-value                                           NA       0.000
+  Scaling correction factor                                  2.368
+
+User Model versus Baseline Model:
+
+  Comparative Fit Index (CFI)                    0.911       0.799
+  Tucker-Lewis Index (TLI)                       0.900       0.774
+                                                                  
+  Robust Comparative Fit Index (CFI)                         0.778
+  Robust Tucker-Lewis Index (TLI)                            0.750
+
+Root Mean Square Error of Approximation:
+
+  RMSEA                                          0.107       0.105
+  90 Percent confidence interval - lower         0.104       0.101
+  90 Percent confidence interval - upper         0.111       0.109
+  P-value H_0: RMSEA <= 0.050                    0.000       0.000
+  P-value H_0: RMSEA >= 0.080                    1.000       1.000
+                                                                  
+  Robust RMSEA                                               0.093
+  90 Percent confidence interval - lower                     0.090
+  90 Percent confidence interval - upper                     0.097
+  P-value H_0: Robust RMSEA <= 0.050                         0.000
+  P-value H_0: Robust RMSEA >= 0.080                         1.000
+
+Standardized Root Mean Square Residual:
+
+  SRMR                                           0.089       0.089
+
+Goodness of Fit Index:
+
+  Goodness of Fit Index (GFI)                    0.837            
+  90 Percent confidence interval - lower         0.828            
+  90 Percent confidence interval - upper         0.846            
+                                                                  
+  Robust GFI                                                 0.871
+  90 Percent confidence interval - lower                     0.862
+  90 Percent confidence interval - upper                     0.880
+
+Parameter Estimates:
+
+  Parameterization                               Theta
+  Standard errors                           Robust.sem
+  Information                                 Expected
+  Information saturated (h1) model        Unstructured
+
+Latent Variables:
+                       Estimate  Std.Err  z-value  P(>|z|)   Std.lv  Std.all
+  Positive =~                                                               
+    att_pos_1             0.480    0.032   15.129    0.000    0.480    0.433
+    att_pos_2             0.770    0.037   20.934    0.000    0.770    0.610
+    att_pos_4             0.717    0.036   19.900    0.000    0.717    0.583
+    att_pos_5             0.574    0.035   16.182    0.000    0.574    0.498
+    att_pos_7             0.979    0.043   22.677    0.000    0.979    0.699
+    att_pos_11            0.986    0.045   22.116    0.000    0.986    0.702
+    att_pos_12            1.012    0.043   23.310    0.000    1.012    0.711
+    att_pos_13            0.569    0.032   17.986    0.000    0.569    0.495
+    att_pos_14            0.918    0.044   20.972    0.000    0.918    0.676
+    att_pos_16            0.611    0.033   18.307    0.000    0.611    0.521
+    att_pos_17            0.821    0.038   21.771    0.000    0.821    0.635
+    att_pos_18            1.023    0.043   23.552    0.000    1.023    0.715
+  NegativeFavorable =~                                                      
+    att_neg_3_r           0.567    0.035   16.182    0.000    0.567    0.493
+    att_neg_6_r           0.541    0.035   15.485    0.000    0.541    0.476
+    att_neg_8_r           1.059    0.051   20.751    0.000    1.059    0.727
+    att_neg_9_r           0.688    0.038   17.997    0.000    0.688    0.567
+    att_neg_10_r          1.046    0.051   20.323    0.000    1.046    0.723
+    att_neg_15_r          0.734    0.036   20.236    0.000    0.734    0.592
+    att_neg_19_r          0.548    0.032   16.912    0.000    0.548    0.481
+    att_neg_20_r          0.540    0.035   15.522    0.000    0.540    0.475
+
+Covariances:
+                   Estimate  Std.Err  z-value  P(>|z|)   Std.lv  Std.all
+  Positive ~~                                                           
+    NegativeFavrbl   -0.058    0.033   -1.772    0.076   -0.058   -0.058
+
+Thresholds:
+                   Estimate  Std.Err  z-value  P(>|z|)   Std.lv  Std.all
+    att_pos_1|t1     -0.794    0.044  -18.182    0.000   -0.794   -0.716
+    att_pos_1|t2      0.207    0.040    5.136    0.000    0.207    0.186
+    att_pos_1|t3      0.947    0.046   20.694    0.000    0.947    0.854
+    att_pos_1|t4      1.839    0.067   27.292    0.000    1.839    1.657
+    att_pos_2|t1     -2.156    0.077  -28.005    0.000   -2.156   -1.709
+    att_pos_2|t2     -1.375    0.056  -24.482    0.000   -1.375   -1.090
+    att_pos_2|t3     -0.185    0.046   -4.043    0.000   -0.185   -0.146
+    att_pos_2|t4      1.361    0.056   24.512    0.000    1.361    1.079
+    att_pos_4|t1     -1.694    0.062  -27.125    0.000   -1.694   -1.377
+    att_pos_4|t2     -0.736    0.048  -15.477    0.000   -0.736   -0.598
+    att_pos_4|t3      0.560    0.046   12.154    0.000    0.560    0.455
+    att_pos_4|t4      1.829    0.067   27.361    0.000    1.829    1.487
+    att_pos_5|t1     -2.481    0.103  -24.039    0.000   -2.481   -2.152
+    att_pos_5|t2     -1.980    0.074  -26.931    0.000   -1.980   -1.718
+    att_pos_5|t3     -1.218    0.052  -23.398    0.000   -1.218   -1.057
+    att_pos_5|t4      0.360    0.042    8.576    0.000    0.360    0.312
+    att_pos_7|t1     -2.342    0.084  -27.875    0.000   -2.342   -1.674
+    att_pos_7|t2     -1.246    0.059  -20.995    0.000   -1.246   -0.890
+    att_pos_7|t3      0.068    0.050    1.351    0.177    0.068    0.049
+    att_pos_7|t4      1.742    0.067   25.969    0.000    1.742    1.245
+    att_pos_11|t1    -2.866    0.114  -25.153    0.000   -2.866   -2.041
+    att_pos_11|t2    -1.869    0.073  -25.548    0.000   -1.869   -1.331
+    att_pos_11|t3    -0.274    0.051   -5.339    0.000   -0.274   -0.195
+    att_pos_11|t4     1.787    0.068   26.276    0.000    1.787    1.273
+    att_pos_12|t1    -2.815    0.106  -26.646    0.000   -2.815   -1.978
+    att_pos_12|t2    -1.753    0.069  -25.323    0.000   -1.753   -1.232
+    att_pos_12|t3    -0.205    0.052   -3.974    0.000   -0.205   -0.144
+    att_pos_12|t4     1.588    0.062   25.493    0.000    1.588    1.116
+    att_pos_13|t1    -0.979    0.047  -21.020    0.000   -0.979   -0.851
+    att_pos_13|t2     0.123    0.042    2.956    0.003    0.123    0.107
+    att_pos_13|t3     1.113    0.049   22.618    0.000    1.113    0.967
+    att_pos_13|t4     1.917    0.069   27.832    0.000    1.917    1.666
+    att_pos_14|t1    -3.121    0.138  -22.654    0.000   -3.121   -2.300
+    att_pos_14|t2    -2.395    0.092  -25.991    0.000   -2.395   -1.765
+    att_pos_14|t3    -1.163    0.059  -19.798    0.000   -1.163   -0.857
+    att_pos_14|t4     1.175    0.056   20.917    0.000    1.175    0.866
+    att_pos_16|t1    -1.933    0.070  -27.468    0.000   -1.933   -1.649
+    att_pos_16|t2    -1.091    0.049  -22.054    0.000   -1.091   -0.931
+    att_pos_16|t3    -0.162    0.042   -3.814    0.000   -0.162   -0.138
+    att_pos_16|t4     1.379    0.054   25.530    0.000    1.379    1.176
+    att_pos_17|t1    -2.336    0.086  -27.117    0.000   -2.336   -1.805
+    att_pos_17|t2    -1.465    0.059  -24.656    0.000   -1.465   -1.132
+    att_pos_17|t3    -0.162    0.047   -3.470    0.001   -0.162   -0.126
+    att_pos_17|t4     1.527    0.060   25.656    0.000    1.527    1.180
+    att_pos_18|t1    -2.293    0.080  -28.504    0.000   -2.293   -1.603
+    att_pos_18|t2    -1.292    0.061  -21.343    0.000   -1.292   -0.903
+    att_pos_18|t3    -0.076    0.052   -1.462    0.144   -0.076   -0.053
+    att_pos_18|t4     1.689    0.066   25.701    0.000    1.689    1.180
+    att_neg_3_r|t1   -1.518    0.057  -26.426    0.000   -1.518   -1.321
+    att_neg_3_r|t2   -0.344    0.042   -8.179    0.000   -0.344   -0.299
+    att_neg_3_r|t3    1.215    0.052   23.495    0.000    1.215    1.057
+    att_neg_3_r|t4    2.063    0.078   26.594    0.000    2.063    1.795
+    att_neg_6_r|t1   -1.133    0.049  -23.116    0.000   -1.133   -0.997
+    att_neg_6_r|t2    0.183    0.041    4.438    0.000    0.183    0.161
+    att_neg_6_r|t3    1.597    0.061   26.340    0.000    1.597    1.404
+    att_neg_6_r|t4    2.552    0.112   22.738    0.000    2.552    2.245
+    att_neg_8_r|t1   -1.297    0.061  -21.347    0.000   -1.297   -0.890
+    att_neg_8_r|t2    0.302    0.054    5.620    0.000    0.302    0.207
+    att_neg_8_r|t3    1.874    0.077   24.402    0.000    1.874    1.287
+    att_neg_8_r|t4    2.996    0.119   25.123    0.000    2.996    2.058
+    att_neg_9_r|t1   -0.765    0.047  -16.399    0.000   -0.765   -0.630
+    att_neg_9_r|t2    0.872    0.050   17.602    0.000    0.872    0.719
+    att_neg_9_r|t3    1.812    0.068   26.541    0.000    1.812    1.493
+    att_neg_9_r|t4    2.563    0.105   24.342    0.000    2.563    2.112
+    att_ng_10_r|t1   -1.697    0.069  -24.582    0.000   -1.697   -1.172
+    att_ng_10_r|t2   -0.411    0.053   -7.810    0.000   -0.411   -0.284
+    att_ng_10_r|t3    1.343    0.066   20.230    0.000    1.343    0.928
+    att_ng_10_r|t4    2.728    0.109   25.072    0.000    2.728    1.885
+    att_ng_15_r|t1   -1.399    0.056  -25.028    0.000   -1.399   -1.128
+    att_ng_15_r|t2   -0.388    0.045   -8.547    0.000   -0.388   -0.312
+    att_ng_15_r|t3    0.684    0.047   14.448    0.000    0.684    0.551
+    att_ng_15_r|t4    1.644    0.060   27.411    0.000    1.644    1.326
+    att_ng_19_r|t1   -1.614    0.059  -27.195    0.000   -1.614   -1.416
+    att_ng_19_r|t2   -0.535    0.043  -12.509    0.000   -0.535   -0.469
+    att_ng_19_r|t3    0.596    0.043   13.763    0.000    0.596    0.523
+    att_ng_19_r|t4    1.577    0.058   27.333    0.000    1.577    1.383
+    att_ng_20_r|t1   -1.596    0.059  -26.918    0.000   -1.596   -1.404
+    att_ng_20_r|t2   -0.562    0.043  -13.097    0.000   -0.562   -0.494
+    att_ng_20_r|t3    0.677    0.044   15.372    0.000    0.677    0.595
+    att_ng_20_r|t4    1.541    0.058   26.649    0.000    1.541    1.356
+
+Variances:
+                   Estimate  Std.Err  z-value  P(>|z|)   Std.lv  Std.all
+   .att_pos_1         1.000                               1.000    0.813
+   .att_pos_2         1.000                               1.000    0.628
+   .att_pos_4         1.000                               1.000    0.661
+   .att_pos_5         1.000                               1.000    0.752
+   .att_pos_7         1.000                               1.000    0.511
+   .att_pos_11        1.000                               1.000    0.507
+   .att_pos_12        1.000                               1.000    0.494
+   .att_pos_13        1.000                               1.000    0.755
+   .att_pos_14        1.000                               1.000    0.543
+   .att_pos_16        1.000                               1.000    0.728
+   .att_pos_17        1.000                               1.000    0.597
+   .att_pos_18        1.000                               1.000    0.489
+   .att_neg_3_r       1.000                               1.000    0.757
+   .att_neg_6_r       1.000                               1.000    0.774
+   .att_neg_8_r       1.000                               1.000    0.472
+   .att_neg_9_r       1.000                               1.000    0.679
+   .att_neg_10_r      1.000                               1.000    0.477
+   .att_neg_15_r      1.000                               1.000    0.650
+   .att_neg_19_r      1.000                               1.000    0.769
+   .att_neg_20_r      1.000                               1.000    0.774
+    Positive          1.000                               1.000    1.000
+    NegativeFavrbl    1.000                               1.000    1.000
+
+Scales y*:
+                   Estimate  Std.Err  z-value  P(>|z|)   Std.lv  Std.all
+    att_pos_1         0.901                               0.901    1.000
+    att_pos_2         0.792                               0.792    1.000
+    att_pos_4         0.813                               0.813    1.000
+    att_pos_5         0.867                               0.867    1.000
+    att_pos_7         0.715                               0.715    1.000
+    att_pos_11        0.712                               0.712    1.000
+    att_pos_12        0.703                               0.703    1.000
+    att_pos_13        0.869                               0.869    1.000
+    att_pos_14        0.737                               0.737    1.000
+    att_pos_16        0.853                               0.853    1.000
+    att_pos_17        0.773                               0.773    1.000
+    att_pos_18        0.699                               0.699    1.000
+    att_neg_3_r       0.870                               0.870    1.000
+    att_neg_6_r       0.880                               0.880    1.000
+    att_neg_8_r       0.687                               0.687    1.000
+    att_neg_9_r       0.824                               0.824    1.000
+    att_neg_10_r      0.691                               0.691    1.000
+    att_neg_15_r      0.806                               0.806    1.000
+    att_neg_19_r      0.877                               0.877    1.000
+    att_neg_20_r      0.880                               0.880    1.000
+
