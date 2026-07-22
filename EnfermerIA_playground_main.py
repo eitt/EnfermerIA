@@ -516,6 +516,125 @@ def make_correlation_heatmap(
     return fig
 
 
+
+def scalar_fit_value(stats_df: pd.DataFrame, name: str) -> float:
+    """Extract one numeric fit index from semopy's calc_stats output."""
+    if name not in stats_df.columns or stats_df.empty:
+        return np.nan
+    value = pd.to_numeric(stats_df[name], errors="coerce").iloc[0]
+    return float(value) if pd.notna(value) else np.nan
+
+
+def classify_fit_index(index_name: str, value: float) -> tuple[str, str]:
+    """Return an accessible interpretation and status for a common fit index."""
+    if pd.isna(value):
+        return "Not available", "Unavailable"
+
+    if index_name in {"CFI", "TLI", "GFI", "AGFI", "NFI"}:
+        if value >= 0.95:
+            return "Strong fit", "Good"
+        if value >= 0.90:
+            return "Marginal or acceptable fit", "Caution"
+        return "Poor fit", "Poor"
+
+    if index_name == "RMSEA":
+        if value <= 0.05:
+            return "Close fit", "Good"
+        if value <= 0.08:
+            return "Reasonable fit", "Caution"
+        return "Poor fit", "Poor"
+
+    if index_name == "SRMR":
+        if value <= 0.05:
+            return "Strong residual fit", "Good"
+        if value <= 0.08:
+            return "Acceptable residual fit", "Caution"
+        return "Poor residual fit", "Poor"
+
+    if index_name == "chi2 p-value":
+        if value >= 0.05:
+            return "Exact-fit test not rejected", "Good"
+        return "Exact-fit test rejected; inspect approximate fit indices", "Caution"
+
+    return "Use comparatively across models", "Information"
+
+
+def build_fit_diagnostics(stats_df: pd.DataFrame) -> pd.DataFrame:
+    indices = ["CFI", "TLI", "RMSEA", "GFI", "AGFI", "NFI", "chi2 p-value"]
+    rows = []
+    for index_name in indices:
+        value = scalar_fit_value(stats_df, index_name)
+        interpretation, status = classify_fit_index(index_name, value)
+        rows.append({
+            "fit_index": index_name,
+            "value": value,
+            "interpretation": interpretation,
+            "status": status,
+        })
+    return pd.DataFrame(rows)
+
+
+def global_fit_conclusion(diagnostics: pd.DataFrame) -> str:
+    available = diagnostics.dropna(subset=["value"])
+    if available.empty:
+        return "Fit could not be evaluated because the required indices were unavailable."
+
+    poor = int((available["status"] == "Poor").sum())
+    caution = int((available["status"] == "Caution").sum())
+    good = int((available["status"] == "Good").sum())
+
+    if poor >= 2:
+        return (
+            "Overall interpretation: the model does not reproduce the observed "
+            "covariance structure adequately. Inspect coding, indicator loadings, "
+            "factor correlations, and theoretically defensible alternative models."
+        )
+    if poor == 0 and caution <= 1 and good >= 3:
+        return (
+            "Overall interpretation: the available indices provide broadly "
+            "supportive evidence of model fit. Confirm the result in lavaan/WLSMV "
+            "and inspect local diagnostics before publication."
+        )
+    return (
+        "Overall interpretation: evidence is mixed. The model may be useful for "
+        "diagnostic comparison, but it should not be treated as clearly fitting "
+        "without additional local and sensitivity checks."
+    )
+
+
+def loading_quality_table(estimates: pd.DataFrame) -> pd.DataFrame:
+    if estimates.empty or "op" not in estimates.columns:
+        return pd.DataFrame()
+
+    loadings = estimates.loc[estimates["op"].eq("~")].copy()
+    if loadings.empty:
+        return loadings
+
+    loading_col = "Est. Std" if "Est. Std" in loadings.columns else "Estimate"
+    loadings["standardized_loading"] = pd.to_numeric(
+        loadings[loading_col], errors="coerce"
+    )
+    loadings["absolute_loading"] = loadings["standardized_loading"].abs()
+    loadings["loading_status"] = pd.cut(
+        loadings["absolute_loading"],
+        bins=[-np.inf, 0.30, 0.50, 0.70, np.inf],
+        labels=["Very weak", "Weak", "Moderate", "Strong"],
+        right=False,
+    )
+    return loadings
+
+
+def construct_score_frame(data: pd.DataFrame) -> pd.DataFrame:
+    scores = pd.DataFrame(index=data.index)
+    for construct, items in DEFAULT_CONSTRUCTS.items():
+        valid = existing(data, items)
+        if valid:
+            scores[construct] = (
+                data[valid].apply(pd.to_numeric, errors="coerce").mean(axis=1)
+            )
+    return scores
+
+
 def to_excel_bytes(sheets: dict[str, pd.DataFrame]) -> bytes:
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
@@ -538,6 +657,8 @@ if "filtered_result" not in st.session_state:
     st.session_state.filtered_result = None
 if "cfa_result" not in st.session_state:
     st.session_state.cfa_result = None
+if "uploaded_signature" not in st.session_state:
+    st.session_state.uploaded_signature = None
 
 
 # =============================================================================
@@ -565,17 +686,17 @@ uploaded = st.sidebar.file_uploader(
 )
 
 if uploaded is not None:
-    try:
-        raw_data, initial_audit = load_data(uploaded)
-        st.session_state.raw_data = raw_data
-        st.session_state.initial_audit = initial_audit
-        st.session_state.filtered_result = None
-        st.session_state.cfa_result = None
-        st.sidebar.success(
-            f"Loaded {raw_data.shape[0]:,} rows and {raw_data.shape[1]:,} columns."
-        )
-    except Exception as exc:
-        st.sidebar.error(str(exc))
+    signature = (uploaded.name, getattr(uploaded, "size", None))
+    if signature != st.session_state.uploaded_signature:
+        try:
+            raw_data, initial_audit = load_data(uploaded)
+            st.session_state.raw_data = raw_data
+            st.session_state.initial_audit = initial_audit
+            st.session_state.filtered_result = None
+            st.session_state.cfa_result = None
+            st.session_state.uploaded_signature = signature
+        except Exception as exc:
+            st.sidebar.error(str(exc))
 
 df = st.session_state.raw_data
 
@@ -587,6 +708,141 @@ if df is None:
         "diagnostics, correlations, CFA model comparison, and quadrant plots."
     )
     st.stop()
+
+st.sidebar.success(
+    f"Loaded {df.shape[0]:,} rows and {df.shape[1]:,} columns."
+)
+
+# ---------------------------------------------------------------------------
+# Global analysis filters
+# ---------------------------------------------------------------------------
+# These controls are evaluated on every rerun and therefore apply consistently
+# to every page in the application.
+
+with st.sidebar.expander("Global analysis filters", expanded=True):
+    require_consent = st.checkbox(
+        "Require consent = 1",
+        value=True,
+        key="global_require_consent",
+    )
+    require_commitment = st.checkbox(
+        "Require commitment = 1",
+        value=False,
+        key="global_require_commitment",
+    )
+    remove_blank_rows = st.checkbox(
+        "Remove fully blank rows",
+        value=True,
+        key="global_remove_blank_rows",
+    )
+    coerce_invalid = st.checkbox(
+        "Convert scale values outside 1–5 to missing",
+        value=True,
+        key="global_coerce_invalid",
+    )
+    reverse_att_neg = st.checkbox(
+        "Create favorable reverse-scored negative-attitude items",
+        value=True,
+        key="global_reverse_attitude",
+    )
+
+    st.markdown("**Attention checks**")
+    use_attention_filter = st.checkbox(
+        "Filter by attention checks",
+        value=False,
+        key="global_use_attention",
+    )
+    use_total_attention = st.checkbox(
+        "Use ac_total",
+        value=True,
+        disabled=not use_attention_filter,
+        key="global_use_total_attention",
+    )
+    use_subscale_attention = st.checkbox(
+        "Require both ac_competence and ac_att",
+        value=False,
+        disabled=not use_attention_filter,
+        key="global_use_subscale_attention",
+    )
+    min_attention = st.slider(
+        "Minimum total attention score",
+        min_value=0,
+        max_value=4,
+        value=0,
+        step=1,
+        disabled=not use_attention_filter,
+        key="global_min_attention",
+    )
+
+    st.markdown("**Sparse-response filtering**")
+    use_sparse_filter = st.checkbox(
+        "Exclude rows with insufficient scale responses",
+        value=False,
+        key="global_use_sparse_filter",
+    )
+    all_scale_items = existing(
+        df,
+        ATT_POS_ITEMS + ATT_NEG_ITEMS + COMP_ALL_ITEMS,
+    )
+    selected_scale_items = st.multiselect(
+        "Items defining row completeness",
+        options=all_scale_items,
+        default=all_scale_items,
+        disabled=not use_sparse_filter,
+        key="global_sparse_items",
+    )
+    min_valid_prop = st.slider(
+        "Minimum valid item proportion",
+        min_value=0.50,
+        max_value=1.00,
+        value=0.80,
+        step=0.05,
+        disabled=not use_sparse_filter,
+        key="global_min_valid_prop",
+    )
+
+    st.markdown("**Optional competence recoding**")
+    reverse_comp = st.multiselect(
+        "Reverse these stored competence columns",
+        options=existing(df, COMP_ALL_ITEMS),
+        default=[],
+        key="global_reverse_comp",
+        help=(
+            "Select only when inspection confirms that a stored `_r` column "
+            "has not already been reverse-scored."
+        ),
+    )
+
+if not use_attention_filter:
+    attention_mode = "Do not filter"
+elif use_subscale_attention:
+    attention_mode = "Both subscales"
+elif use_total_attention:
+    attention_mode = "Total score"
+else:
+    attention_mode = "Do not filter"
+
+active_sparse_items = selected_scale_items if use_sparse_filter else []
+
+st.session_state.filtered_result = build_filter_result(
+    df=df,
+    require_consent=require_consent,
+    require_commitment=require_commitment,
+    min_attention=min_attention,
+    attention_mode=attention_mode,
+    selected_scale_items=active_sparse_items,
+    min_valid_proportion=min_valid_prop,
+    remove_fully_blank_rows=remove_blank_rows,
+    coerce_invalid_likert=coerce_invalid,
+    reverse_competence_items=reverse_comp,
+    reverse_negative_attitude_items=reverse_att_neg,
+)
+
+analysis_df_global = st.session_state.filtered_result.data
+
+st.sidebar.caption(
+    f"Active sample: {len(analysis_df_global):,} of {len(df):,} rows"
+)
 
 
 # =============================================================================
@@ -645,106 +901,45 @@ if page == "1. Data and construct guide":
 # =============================================================================
 
 elif page == "2. Filtering playground":
-    st.title("Filtering playground")
-
-    with st.form("filter_form"):
-        st.subheader("Eligibility rules")
-        a, b, c = st.columns(3)
-        require_consent = a.checkbox("Require consent = 1", value=True)
-        require_commitment = b.checkbox("Require commitment = 1", value=False)
-        remove_blank_rows = c.checkbox("Remove fully blank rows", value=True)
-
-        attention_mode = st.radio(
-            "Attention-check rule",
-            ["Total score", "Both subscales", "Do not filter"],
-            horizontal=True,
-        )
-        min_attention = st.slider(
-            "Minimum attention-check score",
-            min_value=0,
-            max_value=4,
-            value=0,
-            step=1,
-            disabled=attention_mode == "Do not filter",
-        )
-
-        st.subheader("Sparse-response rule")
-        all_scale_items = existing(df, ATT_POS_ITEMS + ATT_NEG_ITEMS + COMP_ALL_ITEMS)
-        selected_scale_items = st.multiselect(
-            "Variables used to determine whether a row is too sparse",
-            options=all_scale_items,
-            default=all_scale_items,
-        )
-        min_valid_prop = st.slider(
-            "Minimum proportion of selected items required",
-            min_value=0.50,
-            max_value=1.00,
-            value=0.80,
-            step=0.05,
-        )
-
-        st.subheader("Coding options")
-        coerce_invalid = st.checkbox(
-            "Convert values outside 1–5 to missing",
-            value=True,
-        )
-        reverse_comp = st.multiselect(
-            "Competence variables to reverse for analysis",
-            options=existing(df, COMP_ALL_ITEMS),
-            default=[],
-            help=(
-                "Leave empty when `_r` columns are already reversed. Select an "
-                "item only when inspection confirms that the stored values remain "
-                "in the original direction."
-            ),
-        )
-        reverse_att_neg = st.checkbox(
-            "Create favorable reverse-scored versions of negative-attitude items",
-            value=True,
-        )
-
-        apply_filters = st.form_submit_button("Apply filters")
-
-    if apply_filters:
-        st.session_state.filtered_result = build_filter_result(
-            df=df,
-            require_consent=require_consent,
-            require_commitment=require_commitment,
-            min_attention=min_attention,
-            attention_mode=attention_mode,
-            selected_scale_items=selected_scale_items,
-            min_valid_proportion=min_valid_prop,
-            remove_fully_blank_rows=remove_blank_rows,
-            coerce_invalid_likert=coerce_invalid,
-            reverse_competence_items=reverse_comp,
-            reverse_negative_attitude_items=reverse_att_neg,
-        )
-        st.session_state.cfa_result = None
+    st.title("Global filtering playground")
+    st.markdown(
+        """
+        All filtering controls are located in the left panel and apply
+        simultaneously to every page. Change any checkbox or threshold to
+        regenerate the active analysis sample, correlations, descriptive
+        summaries, CFA inputs, quadrant plots, and exports.
+        """
+    )
 
     result = st.session_state.filtered_result
-    if result is None:
-        st.info("Apply a filter configuration to generate an analysis sample.")
-    else:
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Source rows", f"{len(df):,}")
-        c2.metric("Retained rows", f"{len(result.data):,}")
-        c3.metric("Excluded rows", f"{len(df) - len(result.data):,}")
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Source rows", f"{len(df):,}")
+    c2.metric("Retained rows", f"{len(result.data):,}")
+    c3.metric("Excluded rows", f"{len(df) - len(result.data):,}")
+    c4.metric("Retention rate", f"{len(result.data) / max(len(df), 1):.1%}")
 
-        reason_counts = (
-            result.row_flags["exclusion_reason"]
-            .value_counts(dropna=False)
-            .rename_axis("reason")
-            .reset_index(name="rows")
-        )
-        fig = px.bar(
-            reason_counts,
-            x="rows",
-            y="reason",
-            orientation="h",
-            title="Row disposition by exclusion reason",
-        )
-        st.plotly_chart(fig, use_container_width=True)
-        st.dataframe(result.row_flags, use_container_width=True, hide_index=True)
+    reason_counts = (
+        result.row_flags["exclusion_reason"]
+        .value_counts(dropna=False)
+        .rename_axis("reason")
+        .reset_index(name="rows")
+        .sort_values("rows", ascending=True)
+    )
+    fig = px.bar(
+        reason_counts,
+        x="rows",
+        y="reason",
+        orientation="h",
+        title="Row disposition under the active global filters",
+        labels={"rows": "Rows", "reason": ""},
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.subheader("Current filter audit")
+    st.dataframe(result.audit, use_container_width=True, hide_index=True)
+
+    st.subheader("Row-level eligibility flags")
+    st.dataframe(result.row_flags, use_container_width=True, hide_index=True)
 
 
 # =============================================================================
@@ -753,11 +948,7 @@ elif page == "2. Filtering playground":
 
 elif page == "3. Descriptive diagnostics":
     st.title("Descriptive diagnostics")
-    analysis_df = (
-        st.session_state.filtered_result.data
-        if st.session_state.filtered_result is not None
-        else df
-    )
+    analysis_df = analysis_df_global.copy()
 
     missing = missingness_table(analysis_df)
     max_missing = st.slider(
@@ -827,11 +1018,7 @@ elif page == "3. Descriptive diagnostics":
 
 elif page == "4. Correlation explorer":
     st.title("Correlation explorer")
-    analysis_df = (
-        st.session_state.filtered_result.data
-        if st.session_state.filtered_result is not None
-        else df
-    )
+    analysis_df = analysis_df_global.copy()
 
     default_vars = existing(
         analysis_df,
@@ -874,11 +1061,7 @@ elif page == "4. Correlation explorer":
 
 elif page == "5. CFA fit playground":
     st.title("CFA fit playground")
-    analysis_df = (
-        st.session_state.filtered_result.data
-        if st.session_state.filtered_result is not None
-        else df
-    )
+    analysis_df = analysis_df_global.copy()
 
     st.warning(
         "This web implementation uses semopy. DWLS is available as an ordinal-"
@@ -937,45 +1120,206 @@ elif page == "5. CFA fit playground":
     if cfa is not None:
         st.metric("Complete cases used", f"{cfa['n']:,}")
 
-        fit_table = fit_summary_table(cfa["stats"])
-        st.subheader("Fit indices")
-        st.dataframe(fit_table, use_container_width=True, hide_index=True)
+        diagnostics = build_fit_diagnostics(cfa["stats"])
+        st.subheader("Visual interpretation of model fit")
 
-        estimates = cfa["estimates"].copy()
-        loading_mask = estimates["op"].eq("~")
-        loadings = estimates.loc[loading_mask].copy()
-        if "Est. Std" in loadings.columns:
-            loading_col = "Est. Std"
-        elif "Estimate" in loadings.columns:
-            loading_col = "Estimate"
-        else:
-            loading_col = None
+        status_order = ["Good", "Caution", "Poor", "Unavailable", "Information"]
+        diagnostics["status"] = pd.Categorical(
+            diagnostics["status"],
+            categories=status_order,
+            ordered=True,
+        )
 
-        if loading_col is not None and not loadings.empty:
+        gauge_cols = st.columns(3)
+        key_indices = ["CFI", "TLI", "RMSEA"]
+        for col, index_name in zip(gauge_cols, key_indices):
+            row = diagnostics.loc[diagnostics["fit_index"].eq(index_name)]
+            value = row["value"].iloc[0] if not row.empty else np.nan
+            interpretation = (
+                row["interpretation"].iloc[0] if not row.empty else "Unavailable"
+            )
+            display_value = "NA" if pd.isna(value) else f"{value:.3f}"
+            col.metric(index_name, display_value, interpretation)
+
+        st.info(global_fit_conclusion(diagnostics))
+
+        plot_diag = diagnostics.dropna(subset=["value"]).copy()
+        if not plot_diag.empty:
+            plot_diag["reference"] = plot_diag["fit_index"].map({
+                "CFI": 0.95,
+                "TLI": 0.95,
+                "RMSEA": 0.08,
+                "GFI": 0.90,
+                "AGFI": 0.90,
+                "NFI": 0.90,
+                "chi2 p-value": 0.05,
+            })
             fig = px.bar(
-                loadings,
-                x=loading_col,
-                y="lval",
-                color="rval",
-                orientation="h",
-                title="Standardized indicator loadings",
-                labels={"lval": "Indicator", "rval": "Factor"},
+                plot_diag,
+                x="fit_index",
+                y="value",
+                color="status",
+                hover_data=["interpretation", "reference"],
+                title="Model-fit profile",
+                labels={"fit_index": "Fit index", "value": "Observed value"},
+                category_orders={"status": status_order},
             )
             st.plotly_chart(fig, use_container_width=True)
 
-        st.subheader("Parameter estimates")
-        st.dataframe(estimates, use_container_width=True, hide_index=True)
-
-        st.subheader("Sensitivity guidance")
-        st.markdown(
-            """
-            Compare fit after changing only one analytical decision at a time:
-            attention threshold, sparse-row threshold, reverse coding, or
-            indicator inclusion. A change that improves fit but destroys the
-            construct definition should not be retained merely because the
-            numerical fit is better.
-            """
+        st.dataframe(
+            diagnostics.sort_values(["status", "fit_index"]),
+            use_container_width=True,
+            hide_index=True,
         )
+
+        fit_table = fit_summary_table(cfa["stats"])
+        with st.expander("Complete fit-index table"):
+            st.dataframe(fit_table, use_container_width=True, hide_index=True)
+
+        estimates = cfa["estimates"].copy()
+        loadings = loading_quality_table(estimates)
+
+        st.subheader("Indicator loading diagnostics")
+        if not loadings.empty:
+            fig = px.bar(
+                loadings.sort_values("standardized_loading"),
+                x="standardized_loading",
+                y="lval",
+                color="loading_status",
+                orientation="h",
+                facet_col="rval",
+                facet_col_wrap=2,
+                title="Standardized loadings by factor",
+                labels={
+                    "lval": "Indicator",
+                    "rval": "Factor",
+                    "standardized_loading": "Standardized loading",
+                },
+            )
+            fig.add_vline(x=0.50, line_dash="dash")
+            fig.update_layout(height=max(550, 30 * len(loadings)))
+            st.plotly_chart(fig, use_container_width=True)
+
+            weak = loadings.loc[loadings["absolute_loading"] < 0.50]
+            if not weak.empty:
+                st.warning(
+                    f"{len(weak)} indicator(s) have absolute standardized "
+                    "loadings below 0.50. Review wording, coding direction, and "
+                    "construct relevance before considering exclusion."
+                )
+            else:
+                st.success("All available standardized loadings are at least 0.50.")
+
+            st.dataframe(
+                loadings[
+                    [
+                        "lval", "rval", "standardized_loading",
+                        "absolute_loading", "loading_status",
+                    ]
+                ],
+                use_container_width=True,
+                hide_index=True,
+            )
+        else:
+            st.info("Standardized loading estimates were not available.")
+
+        st.subheader("Observed-variable residual proxy")
+        st.caption(
+            "This diagnostic compares the observed correlation matrix with a "
+            "simple loading-based reproduced matrix. It is exploratory and does "
+            "not replace lavaan residual diagnostics."
+        )
+        try:
+            observed = (
+                analysis_df[cfa["indicators"]]
+                .apply(pd.to_numeric, errors="coerce")
+                .corr()
+            )
+            st.plotly_chart(
+                make_correlation_heatmap(
+                    observed,
+                    "Observed correlations among CFA indicators",
+                ),
+                use_container_width=True,
+            )
+        except Exception as exc:
+            st.warning(f"Observed correlation plot unavailable: {exc}")
+
+        st.subheader("Additional recommended analyses")
+        tab1, tab2, tab3 = st.tabs(
+            ["Reliability", "Construct correlations", "Sensitivity guidance"]
+        )
+
+        with tab1:
+            reliability_rows = []
+            for construct_name, indicators in used_constructs.items():
+                valid = existing(analysis_df, indicators)
+                reliability_rows.append({
+                    "construct": construct_name,
+                    "items": len(valid),
+                    "complete_cases": int(
+                        analysis_df[valid]
+                        .apply(pd.to_numeric, errors="coerce")
+                        .dropna()
+                        .shape[0]
+                    ) if valid else 0,
+                    "cronbach_alpha": cronbach_alpha(analysis_df[valid])
+                    if len(valid) >= 2 else np.nan,
+                })
+            reliability_df = pd.DataFrame(reliability_rows)
+            st.dataframe(
+                reliability_df.style.format({"cronbach_alpha": "{:.3f}"}),
+                use_container_width=True,
+                hide_index=True,
+            )
+            if not reliability_df.empty:
+                fig = px.bar(
+                    reliability_df,
+                    x="construct",
+                    y="cronbach_alpha",
+                    title="Reliability by construct",
+                    labels={"cronbach_alpha": "Cronbach's alpha", "construct": ""},
+                )
+                fig.add_hline(y=0.70, line_dash="dash")
+                st.plotly_chart(fig, use_container_width=True)
+
+        with tab2:
+            scores = construct_score_frame(analysis_df)
+            if scores.shape[1] >= 2:
+                score_corr = scores.corr(method="spearman")
+                st.plotly_chart(
+                    make_correlation_heatmap(
+                        score_corr,
+                        "Spearman correlations among construct scores",
+                    ),
+                    use_container_width=True,
+                )
+                st.dataframe(
+                    score_corr.style.format("{:.3f}"),
+                    use_container_width=True,
+                )
+            else:
+                st.info("At least two construct scores are required.")
+
+        with tab3:
+            st.markdown(
+                """
+                Compare models by changing one decision at a time:
+
+                1. attention-check threshold;
+                2. sparse-row exclusion threshold;
+                3. reverse-coding assumptions;
+                4. one theoretically questionable indicator;
+                5. correlated-factor versus more parsimonious specifications.
+
+                Prefer theoretically defensible stability over the numerically
+                best result. Final ordinal CFA inference should be reproduced
+                with lavaan and WLSMV.
+                """
+            )
+
+        with st.expander("All parameter estimates"):
+            st.dataframe(estimates, use_container_width=True, hide_index=True)
 
 
 # =============================================================================
@@ -984,11 +1328,7 @@ elif page == "5. CFA fit playground":
 
 elif page == "6. Score quadrants":
     st.title("Score quadrants")
-    analysis_df = (
-        st.session_state.filtered_result.data.copy()
-        if st.session_state.filtered_result is not None
-        else df.copy()
-    )
+    analysis_df = analysis_df_global.copy()
 
     att_items = existing(analysis_df, ATT_POS_ITEMS)
     comp_items = existing(analysis_df, COMP_ALL_ITEMS)
