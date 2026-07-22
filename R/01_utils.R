@@ -140,6 +140,5 @@ write_workbook_safely <- function(sheets, path) {
   }
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
 }
-}
 
 `%||%` <- function(x, y) if (is.null(x)) y else x
