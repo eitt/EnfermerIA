@@ -33,6 +33,10 @@ REQUIRE_COMMITMENT <- FALSE
 # Rows below the threshold are excluded only from analyses requiring that scale.
 MIN_VALID_ITEM_PROP <- 0.80
 
+# Split-sample CFA validation to assess stability and possible overfitting.
+CFA_TRAIN_PROP <- 0.70
+CFA_CV_SEED <- 20260722
+
 # Quadrant cut points: "mean" or "median".
 QUADRANT_CUT <- "mean"
 
