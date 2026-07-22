@@ -36,6 +36,57 @@ check_required_columns <- function(data, columns, context = "analysis") {
   invisible(TRUE)
 }
 
+append_audit_log <- function(action, object = NA_character_, detail = NA_character_,
+                             rows_affected = NA_integer_, columns_affected = NA_integer_) {
+  entry <- tibble::tibble(
+    timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+    action = as.character(action),
+    object = as.character(object),
+    detail = as.character(detail),
+    rows_affected = as.integer(rows_affected),
+    columns_affected = as.integer(columns_affected)
+  )
+  log_path <- file.path(LOG_DIR, "transformation_audit_log.csv")
+  if (file.exists(log_path)) {
+    old <- utils::read.csv(log_path, stringsAsFactors = FALSE, check.names = FALSE)
+    entry <- dplyr::bind_rows(old, entry)
+  }
+  utils::write.csv(entry, log_path, row.names = FALSE, na = "")
+  invisible(entry)
+}
+
+missingness_summary <- function(data, variables = names(data)) {
+  purrr::map_dfr(variables, function(v) {
+    x <- data[[v]]
+    blank <- if (is.character(x)) is.na(x) | stringr::str_trim(x) == "" else is.na(x)
+    tibble::tibble(
+      variable = v,
+      n = length(x),
+      nonmissing = sum(!blank),
+      missing_or_blank = sum(blank),
+      missing_or_blank_pct = mean(blank),
+      unique_nonmissing = dplyr::n_distinct(x[!blank])
+    )
+  })
+}
+
+matrix_to_table <- function(mat, row_name = "variable") {
+  out <- as.data.frame(mat, check.names = FALSE)
+  out[[row_name]] <- rownames(mat)
+  out |> dplyr::select(dplyr::all_of(row_name), dplyr::everything())
+}
+
+safe_polychoric <- function(data, items) {
+  x <- data |> dplyr::select(dplyr::all_of(items))
+  usable <- names(x)[vapply(x, function(z) dplyr::n_distinct(z, na.rm = TRUE) >= 2, logical(1))]
+  removed <- setdiff(items, usable)
+  if (length(usable) < 2) {
+    return(list(rho = matrix(NA_real_, nrow = 0, ncol = 0), removed = removed, usable = usable))
+  }
+  rho <- psych::polychoric(x[, usable, drop = FALSE], correct = 0)$rho
+  list(rho = rho, removed = removed, usable = usable)
+}
+
 item_summary <- function(data, items, scale_name) {
   data |>
     dplyr::select(dplyr::all_of(items)) |>
@@ -60,7 +111,7 @@ reliability_row <- function(data, items, scale_name) {
   x <- data |> dplyr::select(dplyr::all_of(items))
   alpha_obj <- suppressWarnings(psych::alpha(x, check.keys = FALSE, warnings = FALSE))
   omega_obj <- tryCatch(
-    suppressWarnings(psych::omega(x, nfactors = 1, plot = FALSE, warnings = FALSE)),
+    suppressMessages(suppressWarnings(psych::omega(x, nfactors = 1, plot = FALSE, warnings = FALSE))),
     error = function(e) NULL
   )
   tibble::tibble(
@@ -77,10 +128,15 @@ reliability_row <- function(data, items, scale_name) {
 write_workbook_safely <- function(sheets, path) {
   wb <- openxlsx::createWorkbook()
   for (nm in names(sheets)) {
-    openxlsx::addWorksheet(wb, substr(nm, 1, 31))
-    openxlsx::writeDataTable(wb, substr(nm, 1, 31), sheets[[nm]], tableStyle = "TableStyleMedium2")
-    openxlsx::freezePane(wb, substr(nm, 1, 31), firstRow = TRUE)
-    openxlsx::setColWidths(wb, substr(nm, 1, 31), cols = 1:ncol(sheets[[nm]]), widths = "auto")
+    sheet_name <- substr(nm, 1, 31)
+    openxlsx::addWorksheet(wb, sheet_name)
+    value <- sheets[[nm]]
+    if (is.null(value) || ncol(value) == 0) {
+      value <- data.frame(note = "No results available")
+    }
+    openxlsx::writeDataTable(wb, sheet_name, value, tableStyle = "TableStyleMedium2")
+    openxlsx::freezePane(wb, sheet_name, firstRow = TRUE)
+    openxlsx::setColWidths(wb, sheet_name, cols = 1:ncol(value), widths = "auto")
   }
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
 }
