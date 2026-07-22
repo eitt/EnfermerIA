@@ -71,14 +71,56 @@ missingness_summary <- function(data, variables = names(data)) {
 }
 
 matrix_to_table <- function(mat, row_name = "variable") {
-  if (is.null(mat) || length(mat) == 0 || nrow(mat) == 0 || ncol(mat) == 0) {
+  
+  # Handle NULL, atomic vectors, and empty objects safely
+  if (is.null(mat) || length(mat) == 0) {
     return(tibble::tibble(!!row_name := character(0)))
   }
+  
+  # Convert vectors to a one-column matrix
+  if (is.atomic(mat) && is.null(dim(mat))) {
+    mat <- matrix(
+      mat,
+      ncol = 1,
+      dimnames = list(
+        names(mat) %||% as.character(seq_along(mat)),
+        "value"
+      )
+    )
+  }
+  
+  # Convert data frames and other matrix-like objects
+  mat <- as.matrix(mat)
+  
+  dims <- dim(mat)
+  
+  if (
+    is.null(dims) ||
+    length(dims) != 2 ||
+    any(is.na(dims)) ||
+    any(dims == 0)
+  ) {
+    return(tibble::tibble(!!row_name := character(0)))
+  }
+  
   rn <- rownames(mat)
-  if (is.null(rn)) rn <- as.character(seq_len(nrow(mat)))
-  out <- as.data.frame(mat, check.names = FALSE)
-  out <- tibble::rownames_to_column(out, var = row_name)
-  out[[row_name]] <- rn
+  
+  if (is.null(rn)) {
+    rn <- as.character(seq_len(dims[1]))
+  }
+  
+  out <- as.data.frame(
+    mat,
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  
+  out <- tibble::add_column(
+    out,
+    !!row_name := rn,
+    .before = 1
+  )
+  
   out
 }
 

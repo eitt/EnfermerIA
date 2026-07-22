@@ -1,0 +1,17 @@
+"timestamp","action","object","detail","rows_affected","columns_affected"
+"2026-07-22 12:04:47","import","ds_all_2026_07_22.xlsx","Imported sheet 1",1211,58
+"2026-07-22 12:04:47","rename","age","Renamed age to age_years",,1
+"2026-07-22 12:04:47","reverse-score reconstruction","competence_ET_2_raw","Created from already-scored competence_ET_2_r using 6 - x",1211,1
+"2026-07-22 12:04:47","reverse-score reconstruction","competence_US_3_raw","Created from already-scored competence_US_3_r using 6 - x",1211,1
+"2026-07-22 12:04:47","reverse-score reconstruction","competence_AW_8_raw","Created from already-scored competence_AW_8_r using 6 - x",1211,1
+"2026-07-22 12:04:47","invalid-value recoding","Likert items","Values outside 1-5 were converted to NA",855,
+"2026-07-22 12:04:48","label creation","categorical variables","Created English-language factor labels without replacing numeric source columns",,
+"2026-07-22 12:04:48","row filtering","core analysis sample","Applied consent, commitment, and attention criteria; retained 1211 of 1211 rows",0,
+"2026-07-22 12:04:48","reverse scoring","GAAIS negative items","Created att_neg_3_r, att_neg_6_r, att_neg_8_r, att_neg_9_r, att_neg_10_r, att_neg_15_r, att_neg_19_r, att_neg_20_r using 6 - x",1211,8
+"2026-07-22 12:04:48","scale scoring","attitudes and competence","Row means computed only when at least 80% of scale items were valid",1211,
+"2026-07-22 12:05:00","plot ordering","categorical bar plots","Categories ordered from smallest at the top to largest at the bottom",,
+"2026-07-22 12:05:02","plot ordering","Likert plots","Items ordered by ascending item number from top to bottom; response colors ordered 1 to 5 from left to right",,
+"2026-07-22 12:07:18","correlation analysis","observed items and factor scores","Generated polychoric item matrices and Pearson factor-score matrix with pairwise sample sizes",,
+"2026-07-22 12:14:34","CFA estimation","Attitude and competence measurement models","Estimated three ordinal CFA models using WLSMV. Non-convergent or inadmissible models were retained in the status log but were not interpreted.",1211,32
+"2026-07-22 12:20:03","Plot ordering","Categorical bar plots","Categories were ordered by numeric value when possible, or alphabetically otherwise. The smallest category is displayed at the top and the largest category at the bottom.",,
+"2026-07-22 12:20:05","Plot ordering","Likert plots","Items were ordered by ascending item number from top to bottom. Response categories and colors were arranged from 1 on the left to 5 on the right.",,
