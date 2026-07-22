@@ -4,8 +4,24 @@ if (!file.exists(DATA_FILE)) {
   stop("Data file not found at project root: ", DATA_FILE)
 }
 
-raw_data <- readxl::read_excel(DATA_FILE, sheet = DATA_SHEET)
+raw_data <- readxl::read_excel(DATA_FILE, sheet = DATA_SHEET, .name_repair = "unique")
 raw_data <- raw_data |> dplyr::rename_with(~ stringr::str_trim(.x))
+
+# Resolve duplicated ac_total columns created by Excel/readxl name repair.
+# Keep the non-empty observed score and discard empty duplicate columns.
+ac_candidates <- grep("^ac_total(\\.\\.\\.[0-9]+)?$", names(raw_data), value = TRUE)
+if (length(ac_candidates) > 0) {
+  nonempty_ac <- ac_candidates[!vapply(raw_data[ac_candidates], function(x) all(is.na(x)), logical(1))]
+  if (length(nonempty_ac) == 1) {
+    raw_data <- raw_data |>
+      dplyr::rename(ac_total = dplyr::all_of(nonempty_ac)) |>
+      dplyr::select(-dplyr::any_of(setdiff(ac_candidates, nonempty_ac)))
+  } else if (length(nonempty_ac) > 1) {
+    stop("More than one non-empty ac_total column was found: ", paste(nonempty_ac, collapse = ", "))
+  } else {
+    raw_data <- raw_data |> dplyr::select(-dplyr::all_of(ac_candidates))
+  }
+}
 
 # Harmonize age naming found in the data dictionary versus the data frame.
 if ("age" %in% names(raw_data) && !"age_years" %in% names(raw_data)) {
