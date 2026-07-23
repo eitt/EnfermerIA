@@ -559,7 +559,10 @@ def run_semopy_cfa(
 
     model = Model(model_syntax)
     result = model.fit(fit_data, obj=objective)
-    fit_stats = calc_stats(model).T.reset_index().rename(columns={"index": "measure"})
+    # semopy returns a one-row frame indexed by ``Value``.  Keep the fit
+    # indices as columns; transposing here would make CFI/TLI/RMSEA invisible
+    # to the diagnostics table and would incorrectly display them as NA.
+    fit_stats = calc_stats(model).reset_index(drop=True)
     estimates = model.inspect(std_est=True)
 
     return {
@@ -580,10 +583,15 @@ def fit_summary_table(stats_df: pd.DataFrame) -> pd.DataFrame:
     available = [c for c in desired if c in stats_df.columns]
     if not available:
         return stats_df
-    return (
-        stats_df[["measure"] + available]
-        .melt(id_vars="measure", var_name="fit_index", value_name="value")
-        .drop(columns=["measure"])
+    if "measure" in stats_df.columns:
+        return (
+            stats_df[["measure"] + available]
+            .melt(id_vars="measure", var_name="fit_index", value_name="value")
+            .drop(columns=["measure"])
+        )
+    return stats_df[available].melt(
+        var_name="fit_index",
+        value_name="value",
     )
 
 
