@@ -1,0 +1,175 @@
+G3;Running R/01_utils.R
+gG3;Running R/02_import_clean.R
+gNew names:
+• `ac_total` -> `ac_total...12`
+• `ac_total` -> `ac_total...56`
+G3;
+Numeric conversion log
+gG3;
+Invalid-value validation
+gG3;Cells converted to NA because they were outside 1-5: 855
+gG3;
+Reverse-scoring descriptive comparison
+gG3;
+Factor-analysis reverse-scoring means
+gG3;
+Attention-check recalculation
+gG3;Competence-score disagreements: 0
+gG3;Attitude-score disagreements: 0
+gG3;Total-score disagreements: 0
+gG3;Rows with any attention-score disagreement: 0
+gG3;Attention-key status: Validated against observed response coding
+gG3;
+Core sample construction
+gG3;Imported rows: 1211
+gG3;Rows retained in the core sample: 1211
+gG3;Rows excluded by consent or commitment criteria: 0
+gG3;
+Participant-level score availability
+gG3;
+Attention-check subsamples
+gG3;
+Model-specific missingness decisions
+gG3;
+Prepared data saved successfully.
+gG3;Validated source data: outputs/raw_data_validated.rds
+gG3;Scored analysis data: outputs/analysis_data_scored.xlsx
+gG3;Running R/03_descriptive.R
+gG3;Running R/04_psychometrics.R
+gG3;
+Reliability summary
+gG3;
+Factorability summary
+gG3;
+Parallel-analysis summary
+gG3;
+Factor-score diagnostics
+gG3;
+Psychometric diagnostics completed.
+gG3;Workbook: outputs/tables/psychometric_diagnostics.xlsx
+gG3;Running R/05_cfa.R
+gG3;
+============================================================
+gG3;CFA sample: All core-eligible observations | n before model-specific missingness = 1211
+gG3;============================================================
+gG3;
+Model: GAAIS two-factor model
+gG3;Rows before model-specific complete-case filtering: 1211
+gG3;Rows retained for this model: 1211
+gG3;Rows excluded because one or more model indicators were missing: 0
+gG3;Converged: TRUE | admissible: TRUE
+gG3;
+Model: AI Literacy four-factor model
+gG3;Rows before model-specific complete-case filtering: 1211
+gG3;Rows retained for this model: 1211
+gG3;Rows excluded because one or more model indicators were missing: 0
+gG3;Converged: TRUE | admissible: FALSE
+gG3;
+Model: AI Literacy exploratory 3-factor model (Awareness/Evaluation combined)
+gG3;Rows before model-specific complete-case filtering: 1211
+gG3;Rows retained for this model: 1211
+gG3;Rows excluded because one or more model indicators were missing: 0
+gG3;Converged: TRUE | admissible: TRUE
+gG3;
+Model: AI Literacy exploratory general-factor model
+gG3;Rows before model-specific complete-case filtering: 1211
+gG3;Rows retained for this model: 1211
+gG3;Rows excluded because one or more model indicators were missing: 0
+gG3;Converged: TRUE | admissible: TRUE
+gG3;
+============================================================
+gG3;CFA sample: At least two checks correct (provisional) | n before model-specific missingness = 1073
+gG3;============================================================
+gG3;
+Model: GAAIS two-factor model
+gG3;Rows before model-specific complete-case filtering: 1073
+gG3;Rows retained for this model: 1073
+gG3;Rows excluded because one or more model indicators were missing: 0
+gG3;Converged: TRUE | admissible: TRUE
+gG3;
+Model: AI Literacy four-factor model
+gG3;Rows before model-specific complete-case filtering: 1073
+gG3;Rows retained for this model: 1073
+gG3;Rows excluded because one or more model indicators were missing: 0
+gG3;Converged: TRUE | admissible: FALSE
+gG3;
+Model: AI Literacy exploratory 3-factor model (Awareness/Evaluation combined)
+gG3;Rows before model-specific complete-case filtering: 1073
+gG3;Rows retained for this model: 1073
+gG3;Rows excluded because one or more model indicators were missing: 0
+gG3;Converged: TRUE | admissible: TRUE
+gG3;
+Model: AI Literacy exploratory general-factor model
+gG3;Rows before model-specific complete-case filtering: 1073
+gG3;Rows retained for this model: 1073
+gG3;Rows excluded because one or more model indicators were missing: 0
+gG3;Converged: TRUE | admissible: TRUE
+gG3;
+============================================================
+gG3;CFA sample: At least three checks correct (provisional) | n before model-specific missingness = 980
+gG3;============================================================
+gG3;
+Model: GAAIS two-factor model
+gG3;Rows before model-specific complete-case filtering: 980
+gG3;Rows retained for this model: 980
+gG3;Rows excluded because one or more model indicators were missing: 0
+gG3;Converged: TRUE | admissible: TRUE
+gG3;
+Model: AI Literacy four-factor model
+gG3;Rows before model-specific complete-case filtering: 980
+gG3;Rows retained for this model: 980
+gG3;Rows excluded because one or more model indicators were missing: 0
+gG3;Converged: TRUE | admissible: FALSE
+gG3;
+Model: AI Literacy exploratory 3-factor model (Awareness/Evaluation combined)
+gG3;Rows before model-specific complete-case filtering: 980
+gG3;Rows retained for this model: 980
+gG3;Rows excluded because one or more model indicators were missing: 0
+gG3;Converged: TRUE | admissible: TRUE
+gG3;
+Model: AI Literacy exploratory general-factor model
+gG3;Rows before model-specific complete-case filtering: 980
+gG3;Rows retained for this model: 980
+gG3;Rows excluded because one or more model indicators were missing: 0
+gG3;Converged: TRUE | admissible: TRUE
+gG3;
+============================================================
+gG3;CFA sample: All four checks correct (provisional) | n before model-specific missingness = 823
+gG3;============================================================
+gG3;
+Model: GAAIS two-factor model
+gG3;Rows before model-specific complete-case filtering: 823
+gG3;Rows retained for this model: 823
+gG3;Rows excluded because one or more model indicators were missing: 0
+gG3;Converged: TRUE | admissible: TRUE
+gG3;
+Model: AI Literacy four-factor model
+gG3;Rows before model-specific complete-case filtering: 823
+gG3;Rows retained for this model: 823
+gG3;Rows excluded because one or more model indicators were missing: 0
+gG3;Converged: TRUE | admissible: FALSE
+gG3;
+Model: AI Literacy exploratory 3-factor model (Awareness/Evaluation combined)
+gG3;Rows before model-specific complete-case filtering: 823
+gG3;Rows retained for this model: 823
+gG3;Rows excluded because one or more model indicators were missing: 0
+gG3;Converged: TRUE | admissible: TRUE
+gG3;
+Model: AI Literacy exploratory general-factor model
+gG3;Rows before model-specific complete-case filtering: 823
+gG3;Rows retained for this model: 823
+gG3;Rows excluded because one or more model indicators were missing: 0
+gG3;Converged: TRUE | admissible: TRUE
+gG3;Running R/06_bivariate_quadrants.R
+g`geom_smooth()` using formula = 'y ~ x'
+G3;
+Quadrant analysis
+gG3;Rows included: 1211
+gG3;Rows excluded because one of the two attitude scores was missing: 0
+gG3;Running R/07_robustness_diagnostics.R
+gG3;
+Robustness and decision diagnostics
+gG3;Primary analysis sample: all_core
+gG3;Attention-key status: Validated against observed response coding
+gG3;Pipeline completed. See the outputs/ directory.
+g

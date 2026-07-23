@@ -44,16 +44,63 @@ competence_model_4f <- paste0(
   )
 )
 
+# Pre-specified alternatives for structural diagnosis. These models are not
+# selected automatically by fit; they are reported as exploratory comparisons.
+competence_model_3f_awareness_evaluation <- paste0(
+  "AwarenessEvaluation =~ ",
+  paste(
+    c(
+      COMP_AWARENESS,
+      COMP_EVALUATION
+    ),
+    collapse = " + "
+  ),
+  "\n",
+  "Usage =~ ",
+  paste(
+    COMP_USAGE,
+    collapse = " + "
+  ),
+  "\n",
+  "Ethics =~ ",
+  paste(
+    COMP_ETHICS,
+    collapse = " + "
+  )
+)
+
+competence_model_1f <- paste0(
+  "AI_Literacy =~ ",
+  paste(
+    COMP_ALL_ITEMS,
+    collapse = " + "
+  )
+)
+
 model_definitions <- list(
   attitude_2f = list(
     label = "GAAIS two-factor model",
     syntax = attitude_model_2f,
-    indicators = ATTITUDE_MODEL_ITEMS
+    indicators = ATTITUDE_MODEL_ITEMS,
+    analysis_role = "Primary theoretical model"
   ),
   competence_4f = list(
     label = "AI Literacy four-factor model",
     syntax = competence_model_4f,
-    indicators = COMP_ALL_ITEMS
+    indicators = COMP_ALL_ITEMS,
+    analysis_role = "Primary theoretical model; admissibility required"
+  ),
+  competence_3f_awareness_evaluation = list(
+    label = "AI Literacy exploratory 3-factor model (Awareness/Evaluation combined)",
+    syntax = competence_model_3f_awareness_evaluation,
+    indicators = COMP_ALL_ITEMS,
+    analysis_role = "Pre-specified exploratory alternative"
+  ),
+  competence_1f = list(
+    label = "AI Literacy exploratory general-factor model",
+    syntax = competence_model_1f,
+    indicators = COMP_ALL_ITEMS,
+    analysis_role = "Pre-specified exploratory alternative"
   )
 )
 
@@ -95,6 +142,11 @@ analysis_subsamples <- purrr::imap(
       sample_data,
       "sample_label"
     ) <- specification$label
+
+    attr(
+      sample_data,
+      "sample_role"
+    ) <- specification$role
     
     sample_data
   }
@@ -505,6 +557,11 @@ for (sample_key in names(analysis_subsamples)) {
     sample_data,
     "sample_label"
   )
+
+  sample_role <- attr(
+    sample_data,
+    "sample_role"
+  )
   
   message(
     "\n============================================================"
@@ -573,8 +630,11 @@ for (sample_key in names(analysis_subsamples)) {
     model_sample_log[[result_name]] <- tibble::tibble(
       model_key = model_key,
       model = definition$label,
+      analysis_role = definition$analysis_role,
       sample_key = sample_key,
       sample = sample_label,
+      sample_role = sample_role,
+      attention_key_status = attention_key_status,
       n_before_model_missingness = prepared$original_n,
       n_used = prepared$complete_n,
       n_excluded_for_model_missingness = prepared$excluded_n,
@@ -669,6 +729,24 @@ for (sample_key in names(analysis_subsamples)) {
           cat(
             "Sample:",
             sample_label,
+            "\n"
+          )
+
+          cat(
+            "Sample role:",
+            sample_role,
+            "\n"
+          )
+
+          cat(
+            "Analysis role:",
+            definition$analysis_role,
+            "\n"
+          )
+
+          cat(
+            "Attention-key status:",
+            attention_key_status,
             "\n"
           )
           
@@ -914,8 +992,9 @@ append_audit_log(
   action = "CFA estimation",
   object = "Attitude and competence measurement models",
   detail = paste0(
-    "Estimated the two-factor attitude model and four-factor competence model ",
-    "in all core observations and in three attention-check subsamples. ",
+    "Estimated the two-factor attitude model, four-factor competence model, ",
+    "and two pre-specified competence alternatives in all core observations ",
+    "and in three attention-check sensitivity samples. ",
     "Complete-case filtering was applied separately using only each model's ",
     "indicator variables. Text summaries, fit tables, loadings, correlations, ",
     "and plots were saved."

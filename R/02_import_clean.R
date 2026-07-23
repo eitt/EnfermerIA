@@ -640,9 +640,67 @@ reverse_score_comparison <- dplyr::bind_rows(
   descriptives_after_reverse
 )
 
+# Focused diagnostic for the reversed items used in the factor analyses.
+# For a 1-5 Likert item, the expected reversed mean is 6 - mean_before.
+factor_reverse_pairs <- tibble::tibble(
+  original_variable = c(
+    ATT_NEG_ITEMS,
+    names(COMP_REVERSE_MAP)
+  ),
+  reversed_variable = c(
+    ATT_NEG_SCORED,
+    unname(COMP_REVERSE_MAP)
+  )
+)
+
+factor_reverse_means <- purrr::map_dfr(
+  seq_len(nrow(factor_reverse_pairs)),
+  function(i) {
+    original_variable <- factor_reverse_pairs$original_variable[[i]]
+    reversed_variable <- factor_reverse_pairs$reversed_variable[[i]]
+    original_values <- suppressWarnings(
+      as.numeric(raw_data[[original_variable]])
+    )
+    reversed_values <- suppressWarnings(
+      as.numeric(raw_data[[reversed_variable]])
+    )
+    mean_before <- mean(
+      original_values,
+      na.rm = TRUE
+    )
+    mean_after <- mean(
+      reversed_values,
+      na.rm = TRUE
+    )
+    expected_mean_after <- 6 - mean_before
+    tibble::tibble(
+      original_variable = original_variable,
+      reversed_variable = reversed_variable,
+      n_before = sum(!is.na(original_values)),
+      n_after = sum(!is.na(reversed_values)),
+      mean_before = mean_before,
+      mean_after = mean_after,
+      expected_mean_after = expected_mean_after,
+      difference_from_expected = mean_after - expected_mean_after,
+      reverse_check = dplyr::if_else(
+        isTRUE(
+          all.equal(
+            mean_after,
+            expected_mean_after,
+            tolerance = 1e-10
+          )
+        ),
+        "OK",
+        "CHECK"
+      )
+    )
+  }
+)
+
 write_workbook_safely(
   list(
-    Before_and_after = reverse_score_comparison
+    Before_and_after = reverse_score_comparison,
+    Factor_reverse_means = factor_reverse_means
   ),
   file.path(
     TABLE_DIR,
@@ -656,6 +714,15 @@ message(
 
 print(
   reverse_score_comparison,
+  n = Inf
+)
+
+message(
+  "\nFactor-analysis reverse-scoring means"
+)
+
+print(
+  factor_reverse_means,
   n = Inf
 )
 
@@ -826,6 +893,51 @@ rows_with_any_attention_disagreement <- sum(
   na.rm = TRUE
 )
 
+attention_key_validation <- purrr::map_dfr(
+  ATTENTION_ITEMS,
+  function(variable) {
+    observed <- suppressWarnings(
+      as.numeric(raw_data[[variable]])
+    )
+    expected <- unname(
+      ATTENTION_CORRECT_RESPONSES[[variable]]
+    )
+    tibble::tibble(
+      variable = variable,
+      expected_response = expected,
+      observed_responses = paste(
+        sort(unique(observed[!is.na(observed)])),
+        collapse = ", "
+      ),
+      expected_response_observed = expected %in% observed,
+      n_nonmissing = sum(!is.na(observed)),
+      n_scored_correct = sum(
+        !is.na(observed) &
+          observed == expected
+      ),
+      pct_scored_correct = mean(
+        !is.na(observed) &
+          observed == expected
+      ),
+      key_status = if (
+        expected %in% observed
+      ) {
+        "Expected response observed"
+      } else {
+        "CHECK: expected response absent from data"
+      }
+    )
+  }
+)
+
+attention_key_status <- if (
+  all(attention_key_validation$expected_response_observed)
+) {
+  "Validated against observed response coding"
+} else {
+  "PROVISIONAL: at least one expected response is absent from observed data"
+}
+
 append_audit_log(
   action = "Attention-check recalculation",
   object = "ac_competence, ac_att, ac_total",
@@ -853,7 +965,8 @@ write_workbook_safely(
       attention_comparison |>
       dplyr::filter(
         any_disagreement
-      )
+      ),
+    Attention_key_validation = attention_key_validation
   ),
   file.path(
     TABLE_DIR,
@@ -883,6 +996,16 @@ message(
 message(
   "Rows with any attention-score disagreement: ",
   rows_with_any_attention_disagreement
+)
+
+message(
+  "Attention-key status: ",
+  attention_key_status
+)
+
+print(
+  attention_key_validation,
+  n = Inf
 )
 
 # ---------------------------------------------------------------------------
@@ -1257,6 +1380,14 @@ subsample_flow <- tibble::tibble(
     },
     numeric(1)
   ),
+  sample_role = vapply(
+    ATTENTION_SUBSAMPLES,
+    function(x) {
+      x$role
+    },
+    character(1)
+  ),
+  attention_key_status = attention_key_status,
   n = c(
     sum(
       row_audit$subsample_all_core
@@ -1360,6 +1491,7 @@ write_workbook_safely(
     Deleted_rows = deleted_rows_log,
     Model_missingness = factor_missingness_log,
     Score_availability = score_availability,
+    Attention_key_validation = attention_key_validation,
     Missingness_before = missingness_before,
     Missingness_after = missingness_after,
     Reverse_score_descriptives = reverse_score_comparison

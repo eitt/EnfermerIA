@@ -1,5 +1,8 @@
 Model: AI Literacy four-factor model 
 Sample: All core-eligible observations 
+Sample role: Primary analysis 
+Analysis role: Primary theoretical model; admissibility required 
+Attention-key status: Validated against observed response coding 
 Rows used: 1211 
 
 lavaan 0.7-2 ended normally after 38 iterations

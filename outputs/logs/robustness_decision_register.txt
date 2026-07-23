@@ -1,0 +1,35 @@
+Robustness and decision register
+Primary sample: all_core
+Attention-key status: Validated against observed response coding
+
+# A tibble: 6 × 4
+  decision_id decision              rule                                                                                       status
+  <chr>       <chr>                 <chr>                                                                                      <chr> 
+1 D1          Primary sample        Use all core-eligible observations until attention-key validation is complete              Appli…
+2 D2          Attention sensitivity Retain provisional attention subsamples; do not treat them as validated exclusions         Appli…
+3 D3          CFA admissibility     Do not interpret models with post-check failure, negative latent-covariance eigenvalue, o… Appli…
+4 D4          Alternative models    Report pre-specified alternatives without selecting by fit alone                           Appli…
+5 D5          Item deletion         No item is deleted automatically; content and scoring review are required                  Appli…
+6 D6          Future validation     Use EFA/CFA split or independent replication for any data-informed restructuring           Recom…
+
+# A tibble: 16 × 20
+   model_key            model analysis_role sample_key sample sample_role attention_key_status n_used converged post_check admissible
+   <chr>                <chr> <chr>         <chr>      <chr>  <chr>       <chr>                 <int> <lgl>     <lgl>      <lgl>     
+ 1 attitude_2f          GAAI… Primary theo… all_core   All c… Primary an… Validated against o…   1211 TRUE      TRUE       TRUE      
+ 2 competence_4f        AI L… Primary theo… all_core   All c… Primary an… Validated against o…   1211 TRUE      FALSE      FALSE     
+ 3 competence_3f_aware… AI L… Pre-specifie… all_core   All c… Primary an… Validated against o…   1211 TRUE      TRUE       TRUE      
+ 4 competence_1f        AI L… Pre-specifie… all_core   All c… Primary an… Validated against o…   1211 TRUE      TRUE       TRUE      
+ 5 attitude_2f          GAAI… Primary theo… fail_at_m… At le… Sensitivit… Validated against o…   1073 TRUE      TRUE       TRUE      
+ 6 competence_4f        AI L… Primary theo… fail_at_m… At le… Sensitivit… Validated against o…   1073 TRUE      FALSE      FALSE     
+ 7 competence_3f_aware… AI L… Pre-specifie… fail_at_m… At le… Sensitivit… Validated against o…   1073 TRUE      TRUE       TRUE      
+ 8 competence_1f        AI L… Pre-specifie… fail_at_m… At le… Sensitivit… Validated against o…   1073 TRUE      TRUE       TRUE      
+ 9 attitude_2f          GAAI… Primary theo… fail_at_m… At le… Sensitivit… Validated against o…    980 TRUE      TRUE       TRUE      
+10 competence_4f        AI L… Primary theo… fail_at_m… At le… Sensitivit… Validated against o…    980 TRUE      FALSE      FALSE     
+11 competence_3f_aware… AI L… Pre-specifie… fail_at_m… At le… Sensitivit… Validated against o…    980 TRUE      TRUE       TRUE      
+12 competence_1f        AI L… Pre-specifie… fail_at_m… At le… Sensitivit… Validated against o…    980 TRUE      TRUE       TRUE      
+13 attitude_2f          GAAI… Primary theo… pass_all_4 All f… Sensitivit… Validated against o…    823 TRUE      TRUE       TRUE      
+14 competence_4f        AI L… Primary theo… pass_all_4 All f… Sensitivit… Validated against o…    823 TRUE      FALSE      FALSE     
+15 competence_3f_aware… AI L… Pre-specifie… pass_all_4 All f… Sensitivit… Validated against o…    823 TRUE      TRUE       TRUE      
+16 competence_1f        AI L… Pre-specifie… pass_all_4 All f… Sensitivit… Validated against o…    823 TRUE      TRUE       TRUE      
+# ℹ 9 more variables: min_eigen_latent_covariance <dbl>, max_abs_latent_correlation <dbl>, n_latent_correlations_abs_ge_0_95 <int>,
+#   min_abs_loading <dbl>, n_abs_loadings_lt_0_30 <int>, cfi_scaled <dbl>, rmsea_scaled <dbl>, srmr <dbl>, decision <chr>

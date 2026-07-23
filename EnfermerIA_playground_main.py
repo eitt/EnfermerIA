@@ -31,6 +31,22 @@ APP_TITLE = "EnfermerIA Psychometric Playground"
 LIKERT_MIN = 1
 LIKERT_MAX = 5
 
+# These are the validated R-pipeline keys.  The original columns ac_total,
+# ac_competence, and ac_att are never overwritten; the playground creates
+# explicit recalculated columns for sensitivity analysis.
+ATTENTION_CORRECT_RESPONSES = {
+    "ac_1": 1,
+    "ac_2": 1,
+    "ac_3": 1,
+    "ac_4": 1,
+}
+ATTENTION_SAMPLE_LABELS = {
+    "No attention filter (all_core)": None,
+    "At least 2 correct (fail_at_most_2)": 2,
+    "At least 3 correct (fail_at_most_1)": 3,
+    "All 4 correct (pass_all_4)": 4,
+}
+
 ATT_POS_ITEMS = [
     "att_pos_1", "att_pos_2", "att_pos_4", "att_pos_5", "att_pos_7",
     "att_pos_11", "att_pos_12", "att_pos_13", "att_pos_14",
@@ -68,13 +84,21 @@ DEFAULT_REVERSE_COMPETENCE = [
     "competence_ET_2_r",
 ]
 
+ANALYSIS_COMPETENCE_ITEMS = {
+    item: f"{item}__analysis" for item in DEFAULT_REVERSE_COMPETENCE
+}
+
+
+def analysis_items(items: list[str]) -> list[str]:
+    return [ANALYSIS_COMPETENCE_ITEMS.get(item, item) for item in items]
+
 DEFAULT_CONSTRUCTS = {
     "Positive attitudes toward AI": ATT_POS_ITEMS,
     "Negative attitudes toward AI": ATT_NEG_ITEMS,
-    "AI competence: Awareness": COMP_AWARENESS,
-    "AI competence: Usage": COMP_USAGE,
-    "AI competence: Evaluation": COMP_EVALUATION,
-    "AI competence: Ethics": COMP_ETHICS,
+    "AI competence: Awareness": analysis_items(COMP_AWARENESS),
+    "AI competence: Usage": analysis_items(COMP_USAGE),
+    "AI competence: Evaluation": analysis_items(COMP_EVALUATION),
+    "AI competence: Ethics": analysis_items(COMP_ETHICS),
 }
 
 CONSTRUCT_DESCRIPTIONS = {
@@ -119,6 +143,58 @@ class FilterResult:
 
 def safe_numeric(series: pd.Series) -> pd.Series:
     return pd.to_numeric(series, errors="coerce")
+
+
+def recalculate_attention_checks(df: pd.DataFrame) -> pd.DataFrame:
+    """Recalculate attention checks using the same key as R/00_config.R.
+
+    The stored ac_total/ac_competence/ac_att columns are retained for audit
+    and comparison. Missing checks are treated as incorrect, matching the R
+    expressions ``!is.na(x) & x == expected``.
+    """
+    out = df.copy()
+    correct_columns = []
+    for variable, expected in ATTENTION_CORRECT_RESPONSES.items():
+        correct_name = f"{variable}_correct_recalculated"
+        if variable in out.columns:
+            out[correct_name] = safe_numeric(out[variable]).eq(expected).fillna(False)
+        else:
+            out[correct_name] = False
+        correct_columns.append(correct_name)
+
+    out["ac_competence_recalculated"] = (
+        out[["ac_1_correct_recalculated", "ac_2_correct_recalculated"]]
+        .astype(int)
+        .sum(axis=1)
+    )
+    out["ac_att_recalculated"] = (
+        out[["ac_3_correct_recalculated", "ac_4_correct_recalculated"]]
+        .astype(int)
+        .sum(axis=1)
+    )
+    out["ac_total_recalculated"] = (
+        out["ac_competence_recalculated"] + out["ac_att_recalculated"]
+    )
+    out["ac_failed_recalculated"] = 4 - out["ac_total_recalculated"]
+    return out
+
+
+def attention_key_validation_table(df: pd.DataFrame) -> pd.DataFrame:
+    rows = []
+    for variable, expected in ATTENTION_CORRECT_RESPONSES.items():
+        observed = safe_numeric(df[variable]) if variable in df.columns else pd.Series(dtype=float)
+        rows.append({
+            "variable": variable,
+            "expected_response": expected,
+            "expected_response_observed": bool(observed.eq(expected).any()),
+            "n_expected": int(observed.eq(expected).sum()),
+            "key_status": (
+                "Expected response observed"
+                if bool(observed.eq(expected).any())
+                else "Expected response not observed"
+            ),
+        })
+    return pd.DataFrame(rows)
 
 
 def reverse_likert(series: pd.Series) -> pd.Series:
@@ -296,6 +372,18 @@ def build_filter_result(
                 "columns_affected": len(invalid_detail),
             })
 
+    data = recalculate_attention_checks(data)
+    key_validation = attention_key_validation_table(data)
+    audit_rows.append({
+        "action": "recalculate_attention_checks",
+        "detail": (
+            "Used ac_1=1, ac_2=1, ac_3=1, ac_4=1; original ac_total, "
+            "ac_competence, and ac_att were retained unchanged."
+        ),
+        "rows_affected": len(data),
+        "columns_affected": 8,
+    })
+
     for col in existing(data, reverse_competence_items):
         original = safe_numeric(data[col])
         data[f"{col}__analysis"] = reverse_likert(original)
@@ -333,19 +421,19 @@ def build_filter_result(
     else:
         flags["exclude_commitment"] = False
 
-    attention_cols = existing(data, ["ac_total", "ac_competence", "ac_att"])
-    if attention_mode == "Total score" and "ac_total" in attention_cols:
-        criterion = safe_numeric(data["ac_total"]).ge(min_attention)
-    elif attention_mode == "Both subscales" and {"ac_competence", "ac_att"}.issubset(attention_cols):
-        sub_threshold = min(2, max(0, math.ceil(min_attention / 2)))
-        criterion = (
-            safe_numeric(data["ac_competence"]).ge(sub_threshold)
-            & safe_numeric(data["ac_att"]).ge(sub_threshold)
-        )
+    attention_cols = existing(
+        data,
+        ["ac_total_recalculated", "ac_competence_recalculated", "ac_att_recalculated"],
+    )
+    if attention_mode == "Total score" and "ac_total_recalculated" in attention_cols:
+        criterion = safe_numeric(data["ac_total_recalculated"]).ge(min_attention)
     else:
         criterion = pd.Series(True, index=data.index)
 
     flags["exclude_attention"] = ~criterion
+    flags["ac_total_recalculated"] = data["ac_total_recalculated"].to_numpy()
+    flags["ac_competence_recalculated"] = data["ac_competence_recalculated"].to_numpy()
+    flags["ac_att_recalculated"] = data["ac_att_recalculated"].to_numpy()
     keep &= criterion
 
     scale_vars = existing(data, selected_scale_items)
@@ -384,7 +472,7 @@ def build_filter_result(
             "action": "apply_analysis_filters",
             "detail": (
                 f"Consent={require_consent}; commitment={require_commitment}; "
-                f"attention mode={attention_mode}; minimum attention={min_attention}; "
+                f"attention mode={attention_mode}; recalculated minimum attention={min_attention}; "
                 f"minimum valid item proportion={min_valid_proportion:.2f}."
             ),
             "rows_affected": int((~keep).sum()),
@@ -676,6 +764,7 @@ page = st.sidebar.radio(
         "5. CFA fit playground",
         "6. Score quadrants",
         "7. Export and audit",
+        "8. Pipeline and sensitivity guide",
     ],
 )
 
@@ -746,33 +835,20 @@ with st.sidebar.expander("Global analysis filters", expanded=True):
         key="global_reverse_attitude",
     )
 
-    st.markdown("**Attention checks**")
-    use_attention_filter = st.checkbox(
-        "Filter by attention checks",
-        value=False,
-        key="global_use_attention",
+    st.markdown("**Attention checks (R-compatible, recalculated key)**")
+    attention_sample = st.selectbox(
+        "Sensitivity sample",
+        options=list(ATTENTION_SAMPLE_LABELS),
+        index=0,
+        key="global_attention_sample",
+        help=(
+            "Uses recalculated ac_total_recalculated. The original ac_total "
+            "is retained and never overwritten."
+        ),
     )
-    use_total_attention = st.checkbox(
-        "Use ac_total",
-        value=True,
-        disabled=not use_attention_filter,
-        key="global_use_total_attention",
-    )
-    use_subscale_attention = st.checkbox(
-        "Require both ac_competence and ac_att",
-        value=False,
-        disabled=not use_attention_filter,
-        key="global_use_subscale_attention",
-    )
-    min_attention = st.slider(
-        "Minimum total attention score",
-        min_value=0,
-        max_value=4,
-        value=0,
-        step=1,
-        disabled=not use_attention_filter,
-        key="global_min_attention",
-    )
+    selected_attention_threshold = ATTENTION_SAMPLE_LABELS[attention_sample]
+    use_attention_filter = selected_attention_threshold is not None
+    min_attention = selected_attention_threshold or 0
 
     st.markdown("**Sparse-response filtering**")
     use_sparse_filter = st.checkbox(
@@ -813,14 +889,7 @@ with st.sidebar.expander("Global analysis filters", expanded=True):
         ),
     )
 
-if not use_attention_filter:
-    attention_mode = "Do not filter"
-elif use_subscale_attention:
-    attention_mode = "Both subscales"
-elif use_total_attention:
-    attention_mode = "Total score"
-else:
-    attention_mode = "Do not filter"
+attention_mode = "Total score" if use_attention_filter else "Do not filter"
 
 active_sparse_items = selected_scale_items if use_sparse_filter else []
 
@@ -834,7 +903,9 @@ st.session_state.filtered_result = build_filter_result(
     min_valid_proportion=min_valid_prop,
     remove_fully_blank_rows=remove_blank_rows,
     coerce_invalid_likert=coerce_invalid,
-    reverse_competence_items=reverse_comp,
+    reverse_competence_items=unique_preserve_order(
+        DEFAULT_REVERSE_COMPETENCE + reverse_comp
+    ),
     reverse_negative_attitude_items=reverse_att_neg,
 )
 
@@ -1327,24 +1398,25 @@ elif page == "5. CFA fit playground":
 # =============================================================================
 
 elif page == "6. Score quadrants":
-    st.title("Score quadrants")
+    st.title("Positive attitude and negative concern quadrants")
     analysis_df = analysis_df_global.copy()
 
-    att_items = existing(analysis_df, ATT_POS_ITEMS)
-    comp_items = existing(analysis_df, COMP_ALL_ITEMS)
-
-    selected_att = st.multiselect(
-        "Attitude indicators",
-        options=existing(analysis_df, ATT_POS_ITEMS + ATT_NEG_ITEMS + [f"{x}_r" for x in ATT_NEG_ITEMS]),
-        default=att_items,
+    selected_positive = st.multiselect(
+        "Positive-attitude indicators (x-axis)",
+        options=existing(analysis_df, ATT_POS_ITEMS),
+        default=existing(analysis_df, ATT_POS_ITEMS),
     )
-    selected_comp = st.multiselect(
-        "Competence indicators",
-        options=existing(analysis_df, COMP_ALL_ITEMS + [f"{x}__analysis" for x in COMP_ALL_ITEMS]),
-        default=comp_items,
+    selected_concern = st.multiselect(
+        "Negative-concern indicators in original direction (y-axis)",
+        options=existing(analysis_df, ATT_NEG_ITEMS),
+        default=existing(analysis_df, ATT_NEG_ITEMS),
     )
 
-    cut_method = st.radio("Quadrant cut", ["Mean", "Median"], horizontal=True)
+    cut_method = st.radio(
+        "Quadrant cut",
+        ["Theoretical mean (3)", "Sample mean (exploratory)", "Median (exploratory)"],
+        horizontal=True,
+    )
     color_variable = st.selectbox(
         "Optional grouping variable",
         ["None"] + existing(
@@ -1353,46 +1425,51 @@ elif page == "6. Score quadrants":
         ),
     )
 
-    if selected_att and selected_comp:
-        analysis_df["attitude_score"] = (
-            analysis_df[selected_att].apply(pd.to_numeric, errors="coerce").mean(axis=1)
+    if selected_positive and selected_concern:
+        analysis_df["positive_attitude_score"] = (
+            analysis_df[selected_positive].apply(pd.to_numeric, errors="coerce").mean(axis=1)
         )
-        analysis_df["competence_score"] = (
-            analysis_df[selected_comp].apply(pd.to_numeric, errors="coerce").mean(axis=1)
+        analysis_df["negative_concern_score"] = (
+            analysis_df[selected_concern].apply(pd.to_numeric, errors="coerce").mean(axis=1)
         )
 
-        plot_df = analysis_df.dropna(subset=["attitude_score", "competence_score"]).copy()
-        if cut_method == "Mean":
-            x_cut = plot_df["attitude_score"].mean()
-            y_cut = plot_df["competence_score"].mean()
+        plot_df = analysis_df.dropna(
+            subset=["positive_attitude_score", "negative_concern_score"]
+        ).copy()
+        if cut_method == "Theoretical mean (3)":
+            x_cut = 3.0
+            y_cut = 3.0
+        elif cut_method == "Sample mean (exploratory)":
+            x_cut = plot_df["positive_attitude_score"].mean()
+            y_cut = plot_df["negative_concern_score"].mean()
         else:
-            x_cut = plot_df["attitude_score"].median()
-            y_cut = plot_df["competence_score"].median()
+            x_cut = plot_df["positive_attitude_score"].median()
+            y_cut = plot_df["negative_concern_score"].median()
 
         plot_df["quadrant"] = np.select(
             [
-                (plot_df["attitude_score"] >= x_cut) & (plot_df["competence_score"] >= y_cut),
-                (plot_df["attitude_score"] < x_cut) & (plot_df["competence_score"] >= y_cut),
-                (plot_df["attitude_score"] < x_cut) & (plot_df["competence_score"] < y_cut),
+                (plot_df["positive_attitude_score"] >= x_cut) & (plot_df["negative_concern_score"] >= y_cut),
+                (plot_df["positive_attitude_score"] >= x_cut) & (plot_df["negative_concern_score"] < y_cut),
+                (plot_df["positive_attitude_score"] < x_cut) & (plot_df["negative_concern_score"] >= y_cut),
             ],
             [
-                "AI-ready advocates",
-                "Competent but cautious",
-                "Skeptical and underprepared",
+                "Positive but concerned",
+                "Enthusiastic and low-concern",
+                "Cautious or skeptical",
             ],
-            default="Positive but capability-limited",
+            default="Low-engagement and low-concern",
         )
 
         color = None if color_variable == "None" else color_variable
         fig = px.scatter(
             plot_df,
-            x="attitude_score",
-            y="competence_score",
+            x="positive_attitude_score",
+            y="negative_concern_score",
             color=color,
             symbol="quadrant",
             hover_data=existing(plot_df, ["id", "city", "occupation", "study_work_area"]),
             opacity=0.65,
-            title="Attitudes toward AI and competence in using AI",
+            title="Positive attitude and negative concern",
         )
         fig.add_vline(x=x_cut, line_dash="dash")
         fig.add_hline(y=y_cut, line_dash="dash")
@@ -1406,7 +1483,7 @@ elif page == "6. Score quadrants":
         )
         st.dataframe(counts, use_container_width=True, hide_index=True)
     else:
-        st.info("Select at least one attitude and one competence indicator.")
+        st.info("Select at least one positive-attitude and one negative-concern indicator.")
 
 
 # =============================================================================
@@ -1452,6 +1529,14 @@ elif page == "7. Export and audit":
         "Transformation_audit": full_audit,
         "Row_flags": row_flags,
         "Missingness": missingness_table(analysis_df),
+        "Attention_key_validation": attention_key_validation_table(df),
+        "Attention_total_distribution": (
+            recalculate_attention_checks(df)["ac_total_recalculated"]
+            .value_counts()
+            .sort_index()
+            .rename_axis("ac_total_recalculated")
+            .reset_index(name="n")
+        ),
     })
     st.download_button(
         "Download complete audit workbook",
@@ -1471,4 +1556,108 @@ elif page == "7. Export and audit":
         data=json.dumps(config, indent=2).encode("utf-8"),
         file_name="enfermeria_playground_config.json",
         mime="application/json",
+    )
+
+
+# =============================================================================
+# Page 8
+# =============================================================================
+
+elif page == "8. Pipeline and sensitivity guide":
+    st.title("How the filters and sensitivity playground work")
+    st.markdown(
+        """
+        This page explains the difference between the primary R-pipeline sample
+        and exploratory filters. The application preserves the source columns
+        and creates explicit recalculated attention-check columns, so changing
+        a filter does not rewrite the original data.
+        """
+    )
+
+    st.subheader("R-compatible sample roles")
+    st.dataframe(
+        pd.DataFrame([
+            {
+                "sample_key": "all_core",
+                "rule": "Consent/commitment core criteria only",
+                "n_expected": 1211,
+                "role": "Primary analysis",
+            },
+            {
+                "sample_key": "fail_at_most_2",
+                "rule": "Recalculated attention total >= 2",
+                "n_expected": 1073,
+                "role": "Sensitivity",
+            },
+            {
+                "sample_key": "fail_at_most_1",
+                "rule": "Recalculated attention total >= 3",
+                "n_expected": 980,
+                "role": "Sensitivity",
+            },
+            {
+                "sample_key": "pass_all_4",
+                "rule": "Recalculated attention total == 4",
+                "n_expected": 823,
+                "role": "Strict sensitivity",
+            },
+        ]),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    st.info(
+        "The attention key is ac_1=1, ac_2=1, ac_3=1, ac_4=1. "
+        "The original ac_total is retained for audit; filters use "
+        "ac_total_recalculated."
+    )
+
+    st.subheader("What each filter implies")
+    st.markdown(
+        """
+        - **Consent = 1:** applies the R core eligibility rule. It is a
+          substantive inclusion criterion, not a model-fit optimization.
+        - **Commitment = 1:** is off by default because the R pipeline uses
+          `REQUIRE_COMMITMENT = FALSE`. Activating it changes the target
+          population and must be justified before analysis.
+        - **Attention threshold:** creates a sensitivity sample from the
+          recalculated key. It should not replace `all_core` merely because a
+          CFA fit index improves.
+        - **Invalid Likert values:** converts values outside 1--5 to missing,
+          following the R validation rule. It does not delete the entire row.
+        - **Sparse-response filter:** is a playground diagnostic. It is not the
+          same as CFA complete-case handling and should be reported separately.
+        - **Reverse scoring:** creates analysis columns and retains raw values.
+          Confirm the `_r` naming convention before applying any additional
+          reversal; reversing an already reversed item would invert the result.
+        """
+    )
+
+    st.subheader("Recommended sensitivity workflow")
+    st.markdown(
+        """
+        1. Keep the primary configuration fixed: `all_core`, validated key,
+           consent rule, and the R scoring direction.
+        2. Change one decision at a time: attention threshold, commitment rule,
+           missing-item threshold, estimator, or prespecified CFA structure.
+        3. Record `n`, complete cases, reliability, factorability, CFI/TLI,
+           RMSEA/SRMR, convergence, and admissibility.
+        4. Treat a model as inadmissible when latent covariance checks fail,
+           even if the optimizer reports convergence.
+        5. Do not remove rows or items solely because the numerical fit becomes
+           better. Investigate data quality, influence, content, and coding,
+           then validate changes on independent or held-out data.
+        """
+    )
+
+    st.subheader("Playground experiments that are appropriate")
+    st.markdown(
+        """
+        Useful exploratory comparisons include: all four R-compatible samples;
+        Pearson versus Spearman correlations; robust/ordinal versus continuous
+        estimation; the prespecified 4-factor, 3-factor, and 1-factor competence
+        models; and case-influence diagnostics. These experiments describe
+        robustness. They do not authorize selecting the most favorable result
+        after looking at the output.
+        """
     )

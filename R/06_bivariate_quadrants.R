@@ -64,33 +64,10 @@ if (nrow(plot_data) < 3) {
   )
 }
 
-x_cut <- if (
-  QUADRANT_CUT == "median"
-) {
-  stats::median(
-    plot_data$attitude_positive,
-    na.rm = TRUE
-  )
-} else {
-  mean(
-    plot_data$attitude_positive,
-    na.rm = TRUE
-  )
-}
-
-y_cut <- if (
-  QUADRANT_CUT == "median"
-) {
-  stats::median(
-    plot_data$attitude_negative_concern,
-    na.rm = TRUE
-  )
-} else {
-  mean(
-    plot_data$attitude_negative_concern,
-    na.rm = TRUE
-  )
-}
+# Use the theoretical midpoint of the 1--5 response scale for both axes.
+# These cut points are intentionally fixed and are not calculated from the data.
+x_cut <- 3
+y_cut <- 3
 
 plot_data <- plot_data |>
   dplyr::mutate(
@@ -121,7 +98,7 @@ quadrant_summary <- plot_data |>
     percent = n / sum(n),
     positive_cut = x_cut,
     negative_concern_cut = y_cut,
-    cut_method = QUADRANT_CUT
+    cut_method = "theoretical mean (3)"
   )
 
 pearson_test <- stats::cor.test(
@@ -178,6 +155,12 @@ quadrant_labels <- tibble::tibble(
     4.55,
     1.45
   ),
+  quadrant = c(
+    "Enthusiastic and low-concern",
+    "Positive but concerned",
+    "Cautious or skeptical",
+    "Low-engagement and low-concern"
+  ),
   label = c(
     "Enthusiastic\nand low-concern",
     "Positive but\nconcerned",
@@ -185,6 +168,16 @@ quadrant_labels <- tibble::tibble(
     "Low-engagement\nand low-concern"
   )
 )
+
+quadrant_labels <- quadrant_labels |>
+  dplyr::left_join(
+    quadrant_summary |>
+      dplyr::select(quadrant, n),
+    by = "quadrant"
+  ) |>
+  dplyr::mutate(
+    label = paste0(label, "\n(n = ", dplyr::coalesce(n, 0L), ")")
+  )
 
 p <- ggplot2::ggplot(
   plot_data,
@@ -273,9 +266,7 @@ p <- ggplot2::ggplot(
   ggplot2::labs(
     title = "Positive attitudes and negative concerns toward AI",
     subtitle = paste0(
-      "Quadrants split at the ",
-      QUADRANT_CUT,
-      "; Pearson r = ",
+      "Quadrants split at the theoretical midpoint (3 on both axes); Pearson r = ",
       sprintf(
         "%.2f",
         pearson_test$estimate

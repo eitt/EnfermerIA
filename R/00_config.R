@@ -51,8 +51,8 @@ REQUIRE_COMMITMENT <- FALSE
 # CFA uses complete cases on the indicators of the model being estimated.
 MIN_VALID_ITEM_PROP <- 0.80
 
-# Quadrant cuts: "mean" or "median".
-QUADRANT_CUT <- "mean"
+# Quadrants use the theoretical midpoint of the 1-5 response scale.
+QUADRANT_CUT <- "theoretical_mean"
 
 # ---------------------------------------------------------------------------
 # GAAIS: attitudes toward AI
@@ -181,10 +181,15 @@ ATTENTION_ITEMS <- c(
 
 ATTENTION_CORRECT_RESPONSES <- c(
   ac_1 = 1,
-  ac_2 = 5,
-  ac_3 = 5,
+  ac_2 = 1,
+  ac_3 = 1,
   ac_4 = 1
 )
+
+# The response key comes from the variable dictionary but must be validated
+# against the original response coding before it is used for exclusion.
+ATTENTION_CHECKS_VALIDATED <- FALSE
+PRIMARY_ANALYSIS_SAMPLE <- "all_core"
 
 # Models are estimated in all these samples.
 #
@@ -203,19 +208,23 @@ ATTENTION_CORRECT_RESPONSES <- c(
 ATTENTION_SUBSAMPLES <- list(
   all_core = list(
     label = "All core-eligible observations",
-    minimum_correct = 0
+    minimum_correct = 0,
+    role = "Primary analysis"
   ),
   fail_at_most_2 = list(
-    label = "Failed at most two attention checks",
-    minimum_correct = 2
+    label = "At least two checks correct (provisional)",
+    minimum_correct = 2,
+    role = "Sensitivity analysis; key not yet validated"
   ),
   fail_at_most_1 = list(
-    label = "Failed at most one attention check",
-    minimum_correct = 3
+    label = "At least three checks correct (provisional)",
+    minimum_correct = 3,
+    role = "Sensitivity analysis; key not yet validated"
   ),
   pass_all_4 = list(
-    label = "Passed all four attention checks",
-    minimum_correct = 4
+    label = "All four checks correct (provisional)",
+    minimum_correct = 4,
+    role = "Sensitivity analysis; key not yet validated"
   )
 )
 

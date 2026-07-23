@@ -1,0 +1,199 @@
+Model: AI Literacy exploratory 3-factor model (Awareness/Evaluation combined) 
+Sample: At least two checks correct (provisional) 
+Sample role: Sensitivity analysis; key not yet validated 
+Analysis role: Pre-specified exploratory alternative 
+Attention-key status: Validated against observed response coding 
+Rows used: 1073 
+
+lavaan 0.7-2 ended normally after 41 iterations
+
+  Estimator                                       DWLS
+  Optimization method                           NLMINB
+  Number of model parameters                        63
+
+  Number of observations                          1073
+
+Model Test User Model:
+                                              Standard      Scaled
+  Test Statistic                               705.075     995.020
+  Degrees of freedom                                51          51
+  P-value (Unknown)                                 NA       0.000
+  Scaling correction factor                                  0.715
+  Shift parameter                                            9.342
+    simple second-order correction                                
+
+Model Test Baseline Model:
+
+  Test statistic                             10615.008    5812.204
+  Degrees of freedom                                66          66
+  P-value                                           NA       0.000
+  Scaling correction factor                                  1.836
+
+User Model versus Baseline Model:
+
+  Comparative Fit Index (CFI)                    0.938       0.836
+  Tucker-Lewis Index (TLI)                       0.920       0.787
+                                                                  
+  Robust Comparative Fit Index (CFI)                         0.794
+  Robust Tucker-Lewis Index (TLI)                            0.734
+
+Root Mean Square Error of Approximation:
+
+  RMSEA                                          0.109       0.131
+  90 Percent confidence interval - lower         0.102       0.124
+  90 Percent confidence interval - upper         0.117       0.139
+  P-value H_0: RMSEA <= 0.050                    0.000       0.000
+  P-value H_0: RMSEA >= 0.080                    1.000       1.000
+                                                                  
+  Robust RMSEA                                               0.118
+  90 Percent confidence interval - lower                     0.111
+  90 Percent confidence interval - upper                     0.125
+  P-value H_0: Robust RMSEA <= 0.050                         0.000
+  P-value H_0: Robust RMSEA >= 0.080                         1.000
+
+Standardized Root Mean Square Residual:
+
+  SRMR                                           0.080       0.080
+
+Goodness of Fit Index:
+
+  Goodness of Fit Index (GFI)                    0.908            
+  90 Percent confidence interval - lower         0.896            
+  90 Percent confidence interval - upper         0.918            
+                                                                  
+  Robust GFI                                                 0.895
+  90 Percent confidence interval - lower                     0.883
+  90 Percent confidence interval - upper                     0.905
+
+Parameter Estimates:
+
+  Parameterization                               Theta
+  Standard errors                           Robust.sem
+  Information                                 Expected
+  Information saturated (h1) model        Unstructured
+
+Latent Variables:
+                         Estimate  Std.Err  z-value  P(>|z|)   Std.lv  Std.all
+  AwarenessEvaluation =~                                                      
+    competenc_AW_1          0.715    0.042   17.064    0.000    0.715    0.582
+    comptnc_AW_8_r          0.386    0.035   10.893    0.000    0.386    0.360
+    competenc_AW_9          0.897    0.042   21.206    0.000    0.897    0.668
+    competenc_EV_2          1.001    0.048   20.998    0.000    1.001    0.707
+    competenc_EV_3          0.743    0.043   17.239    0.000    0.743    0.596
+    competenc_EV_6          1.035    0.049   20.981    0.000    1.035    0.719
+  Usage =~                                                                    
+    competenc_US_1          1.533    0.104   14.686    0.000    1.533    0.838
+    comptnc_US_3_r          0.320    0.036    8.801    0.000    0.320    0.305
+    competenc_US_5          1.111    0.066   16.784    0.000    1.111    0.743
+  Ethics =~                                                                   
+    competenc_ET_1          0.604    0.050   12.006    0.000    0.604    0.517
+    comptnc_ET_2_r         -0.026    0.036   -0.711    0.477   -0.026   -0.026
+    competenc_ET_5          0.809    0.069   11.658    0.000    0.809    0.629
+
+Covariances:
+                         Estimate  Std.Err  z-value  P(>|z|)   Std.lv  Std.all
+  AwarenessEvaluation ~~                                                      
+    Usage                   0.785    0.020   39.719    0.000    0.785    0.785
+    Ethics                  0.786    0.036   21.558    0.000    0.786    0.786
+  Usage ~~                                                                    
+    Ethics                  0.424    0.042   10.053    0.000    0.424    0.424
+
+Thresholds:
+                   Estimate  Std.Err  z-value  P(>|z|)   Std.lv  Std.all
+    cmptnc_AW_1|t1   -2.368    0.099  -23.990    0.000   -2.368   -1.926
+    cmptnc_AW_1|t2   -1.533    0.065  -23.709    0.000   -1.533   -1.247
+    cmptnc_AW_1|t3   -0.715    0.051  -14.007    0.000   -0.715   -0.581
+    cmptnc_AW_1|t4    0.848    0.051   16.729    0.000    0.848    0.690
+    cmptnc_AW_8_|1   -2.004    0.081  -24.779    0.000   -2.004   -1.870
+    cmptnc_AW_8_|2   -1.342    0.056  -24.152    0.000   -1.342   -1.252
+    cmptnc_AW_8_|3   -0.785    0.046  -17.161    0.000   -0.785   -0.732
+    cmptnc_AW_8_|4    0.406    0.042    9.686    0.000    0.406    0.379
+    cmptnc_AW_9|t1   -2.673    0.110  -24.311    0.000   -2.673   -1.990
+    cmptnc_AW_9|t2   -1.641    0.069  -23.957    0.000   -1.641   -1.222
+    cmptnc_AW_9|t3   -0.626    0.054  -11.518    0.000   -0.626   -0.466
+    cmptnc_AW_9|t4    1.319    0.060   22.091    0.000    1.319    0.982
+    cmptnc_EV_2|t1   -2.726    0.111  -24.614    0.000   -2.726   -1.926
+    cmptnc_EV_2|t2   -1.823    0.075  -24.222    0.000   -1.823   -1.288
+    cmptnc_EV_2|t3   -0.768    0.059  -13.019    0.000   -0.768   -0.543
+    cmptnc_EV_2|t4    1.286    0.061   20.941    0.000    1.286    0.909
+    cmptnc_EV_3|t1   -2.346    0.094  -24.951    0.000   -2.346   -1.883
+    cmptnc_EV_3|t2   -1.848    0.073  -25.268    0.000   -1.848   -1.484
+    cmptnc_EV_3|t3   -0.874    0.053  -16.481    0.000   -0.874   -0.702
+    cmptnc_EV_3|t4    1.068    0.054   19.694    0.000    1.068    0.857
+    cmptnc_EV_6|t1   -2.817    0.119  -23.765    0.000   -2.817   -1.957
+    cmptnc_EV_6|t2   -1.765    0.075  -23.647    0.000   -1.765   -1.227
+    cmptnc_EV_6|t3   -0.837    0.060  -13.926    0.000   -0.837   -0.581
+    cmptnc_EV_6|t4    1.386    0.064   21.551    0.000    1.386    0.963
+    cmptnc_US_1|t1   -3.374    0.168  -20.044    0.000   -3.374   -1.844
+    cmptnc_US_1|t2   -2.439    0.133  -18.387    0.000   -2.439   -1.333
+    cmptnc_US_1|t3   -1.268    0.095  -13.394    0.000   -1.268   -0.693
+    cmptnc_US_1|t4    1.414    0.089   15.961    0.000    1.414    0.772
+    cmptnc_US_3_|1   -1.724    0.068  -25.462    0.000   -1.724   -1.642
+    cmptnc_US_3_|2   -0.824    0.045  -18.162    0.000   -0.824   -0.785
+    cmptnc_US_3_|3   -0.191    0.040   -4.720    0.000   -0.191   -0.182
+    cmptnc_US_3_|4    1.000    0.048   21.022    0.000    1.000    0.952
+    cmptnc_US_5|t1   -2.569    0.107  -23.918    0.000   -2.569   -1.718
+    cmptnc_US_5|t2   -1.926    0.088  -21.820    0.000   -1.926   -1.288
+    cmptnc_US_5|t3   -1.261    0.073  -17.351    0.000   -1.261   -0.844
+    cmptnc_US_5|t4    0.808    0.061   13.246    0.000    0.808    0.540
+    cmptnc_ET_1|t1   -2.169    0.093  -23.438    0.000   -2.169   -1.857
+    cmptnc_ET_1|t2   -1.725    0.072  -23.898    0.000   -1.725   -1.477
+    cmptnc_ET_1|t3   -0.932    0.053  -17.609    0.000   -0.932   -0.798
+    cmptnc_ET_1|t4    0.725    0.048   14.957    0.000    0.725    0.620
+    cmptnc_ET_2_|1   -1.322    0.053  -24.794    0.000   -1.322   -1.321
+    cmptnc_ET_2_|2   -0.430    0.040  -10.858    0.000   -0.430   -0.430
+    cmptnc_ET_2_|3    0.215    0.039    5.580    0.000    0.215    0.215
+    cmptnc_ET_2_|4    0.990    0.046   21.532    0.000    0.990    0.989
+    cmptnc_ET_5|t1   -2.210    0.103  -21.444    0.000   -2.210   -1.718
+    cmptnc_ET_5|t2   -1.546    0.077  -19.985    0.000   -1.546   -1.202
+    cmptnc_ET_5|t3   -0.563    0.054  -10.455    0.000   -0.563   -0.438
+    cmptnc_ET_5|t4    1.183    0.066   18.015    0.000    1.183    0.919
+
+Variances:
+                   Estimate  Std.Err  z-value  P(>|z|)   Std.lv  Std.all
+   .competenc_AW_1    1.000                               1.000    0.662
+   .comptnc_AW_8_r    1.000                               1.000    0.870
+   .competenc_AW_9    1.000                               1.000    0.554
+   .competenc_EV_2    1.000                               1.000    0.500
+   .competenc_EV_3    1.000                               1.000    0.644
+   .competenc_EV_6    1.000                               1.000    0.483
+   .competenc_US_1    1.000                               1.000    0.299
+   .comptnc_US_3_r    1.000                               1.000    0.907
+   .competenc_US_5    1.000                               1.000    0.447
+   .competenc_ET_1    1.000                               1.000    0.733
+   .comptnc_ET_2_r    1.000                               1.000    0.999
+   .competenc_ET_5    1.000                               1.000    0.605
+    AwarenessEvltn    1.000                               1.000    1.000
+    Usage             1.000                               1.000    1.000
+    Ethics            1.000                               1.000    1.000
+
+Scales y*:
+                   Estimate  Std.Err  z-value  P(>|z|)   Std.lv  Std.all
+    competenc_AW_1    0.813                               0.813    1.000
+    comptnc_AW_8_r    0.933                               0.933    1.000
+    competenc_AW_9    0.744                               0.744    1.000
+    competenc_EV_2    0.707                               0.707    1.000
+    competenc_EV_3    0.803                               0.803    1.000
+    competenc_EV_6    0.695                               0.695    1.000
+    competenc_US_1    0.546                               0.546    1.000
+    comptnc_US_3_r    0.952                               0.952    1.000
+    competenc_US_5    0.669                               0.669    1.000
+    competenc_ET_1    0.856                               0.856    1.000
+    comptnc_ET_2_r    1.000                               1.000    1.000
+    competenc_ET_5    0.778                               0.778    1.000
+
+R-Square:
+                   Estimate
+    competenc_AW_1    0.338
+    comptnc_AW_8_r    0.130
+    competenc_AW_9    0.446
+    competenc_EV_2    0.500
+    competenc_EV_3    0.356
+    competenc_EV_6    0.517
+    competenc_US_1    0.701
+    comptnc_US_3_r    0.093
+    competenc_US_5    0.553
+    competenc_ET_1    0.267
+    comptnc_ET_2_r    0.001
+    competenc_ET_5    0.395
+

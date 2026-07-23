@@ -1,0 +1,530 @@
+% Standalone report: no external tables, figures, or bibliography required.
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-nodecimaldot]{babel}
+\usepackage[a4paper,margin=2.2cm]{geometry}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{placeins}
+\usepackage{xstring}
+
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.55em}
+\renewcommand{\arraystretch}{1.15}
+
+\graphicspath{{figuras/}}
+\newcommand{\figureguide}[1]{%
+\IfSubStr{#1}{cfa_fit}{%
+  En el eje horizontal se comparan las muestras y en el vertical se muestra el indice del panel. Para CFI y TLI, los valores mas altos indican mejor ajuste; para RMSEA y SRMR, los valores mas bajos indican mejor ajuste. Compare primero la misma metrica entre muestras y despues las metricas entre si.%
+}{%
+\IfSubStr{#1}{cfa_loadings}{%
+  El eje horizontal representa la carga estandarizada y cada punto corresponde a un item. Los valores cercanos a 1 indican una relacion mas fuerte con el factor; los valores cercanos a 0, o los que cambian de signo, requieren revision teorica y de puntuacion.%
+}{%
+\IfSubStr{#1}{reliability}{%
+  El eje horizontal identifica la muestra y el vertical muestra alfa de Cronbach. La linea discontinua en .70 es una referencia descriptiva: un valor mayor sugiere mas consistencia, pero no demuestra unidimensionalidad ni validez del constructo.%
+}{%
+\IfSubStr{#1}{model_admissibility}{%
+  Cada casilla cruza un modelo con una muestra. El color indica si la solucion es admisible, inadmisible o no estimable. Una casilla admisible permite interpretar los parametros, pero no implica que el ajuste global sea suficiente.%
+}{%
+\IfSubStr{#1}{parallel_analysis}{%
+  El eje horizontal indica el numero de factores y el vertical el valor propio. Se conservan los factores cuyo valor observado supera el valor obtenido por azar. Esta figura orienta la exploracion; no reemplaza la decision teorica ni la validacion confirmatoria.%
+}{%
+\IfSubStr{#1}{correlation_observed}{%
+  Las filas y columnas representan items. El color y la intensidad muestran el signo y la magnitud de la asociacion: colores mas intensos indican relaciones mas fuertes. Busque bloques de items relacionados y valores excepcionalmente altos o bajos.%
+}{%
+\IfSubStr{#1}{factor_score_pairs}{%
+  Lea cada celda como la asociacion entre el factor de la fila y el factor de la columna. Las asociaciones altas pueden reflejar solapamiento entre constructos, pero no prueban por si solas que exista un unico factor latente.%
+}{%
+\IfSubStr{#1}{correlation_factor}{%
+  Las filas y columnas representan factores o puntuaciones resumen. Una celda positiva indica que ambas puntuaciones aumentan juntas; una celda negativa indica que una tiende a aumentar cuando la otra disminuye. La diagonal representa la correlacion de cada variable consigo misma.%
+}{%
+\IfSubStr{#1}{positive_negative_attitude_quadrants}{%
+  El eje horizontal representa actitud positiva y el vertical preocupacion negativa. Las lineas en 3 dividen la figura en cuatro zonas; por ejemplo, un punto que aumenta hacia la derecha y hacia arriba indica simultaneamente mayor actitud positiva y mayor preocupacion.%
+}{%
+\IfSubStr{#1}{categorical}{%
+  El eje horizontal muestra las categorias de respuesta y el vertical el numero o proporcion de participantes. Compare la altura de las barras, prestando atencion a categorias con pocos casos antes de extraer conclusiones entre grupos.%
+}{%
+\IfSubStr{#1}{likert}{%
+  El eje horizontal muestra las categorias Likert y el vertical el numero o porcentaje de respuestas. Una concentracion hacia la derecha indica respuestas mas altas; en items negativos, recuerde que la direccion favorable solo aparece despues de invertirlos.%
+}{%
+\IfSubStr{#1}{continuous}{%
+  El eje horizontal muestra los valores de la variable continua y el vertical la frecuencia o densidad. Observe el centro, la dispersion y los valores extremos antes de comparar la muestra con otras poblaciones.%
+}{%
+  Lea los ejes, la leyenda y los paneles antes de interpretar el patron. Las diferencias verticales muestran magnitud; las diferencias horizontales muestran categorias, muestras o niveles de la variable representada.%
+}}}}}}}}}}}}
+}
+\newcommand{\reportfigure}[3]{%
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{figuras/#1}
+\caption{#2}
+\label{fig:#1}
+\end{figure}
+\par\medskip
+\noindent\textit{Cómo leerla.} \figureguide{#1}
+\par\smallskip
+\noindent\textit{Interpretación.} #3
+\par\medskip
+\FloatBarrier
+}
+
+\title{Evaluación factorial y psicométrica de las escalas de actitudes y alfabetización en IA}
+\author{Leonardo Talero-Sarmiento}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Estado de ejecucion y trazabilidad}
+
+La ejecucion mas reciente completo los modulos de importacion, limpieza, descriptivos, psicometria, CFA, cuadrantes y robustez. El CFA produjo resultados para cuatro modelos en la muestra principal y en tres subsamples de sensibilidad: 1,073, 980 y 823 casos. La clave de los attention checks fue corregida y validada contra las respuestas observadas. Por ello, los outputs actuales incluyen comparaciones de confiabilidad, factorabilidad, admisibilidad y decisiones entre muestras.
+
+
+
+\section{Resumen ejecutivo}
+
+La muestra principal contiene 1,211 observaciones elegibles y no presenta datos faltantes en los ítems requeridos por los modelos factoriales. La recomendación metodológica es trabajar con los 1,211 casos como análisis principal y utilizar los subsamples de 1,073, 980 y 823 casos como análisis de sensibilidad definidos por el número de attention checks correctos.
+
+La clave corregida establece \texttt{ac\_1}=1, \texttt{ac\_2}=1, \texttt{ac\_3}=1 y \texttt{ac\_4}=1. Las cuatro respuestas esperadas aparecen en los datos observados y la recalculación fue validada. La distribución del número de aciertos fue: 98 participantes con cero, 40 con uno, 93 con dos, 157 con tres y 823 con cuatro. Estos resultados permiten usar los subsamples como sensibilidad, sin convertirlos automáticamente en criterios de exclusión de la muestra principal.
+
+El modelo de dos factores de GAAIS converge y es admisible en todas las muestras. Su ajuste global es insuficiente, aunque mejora moderadamente en algunos subsamples. El modelo de cuatro factores de alfabetización en IA converge numéricamente, pero continúa siendo inadmisible en todas las muestras: presenta problemas en la matriz de covarianzas latentes. Por tanto, no debe presentarse como un modelo factorial confirmatorio validado.
+
+\section{Datos, puntuación y attention checks}
+
+La comprobación de inversión de ítems es correcta. Para todos los ítems invertidos, el promedio posterior coincide con $6 - \bar{x}_{\mathrm{antes}}$, con diferencia igual a cero y estado \texttt{OK}. Esto confirma la transformación matemática. Todavía queda por revisar si cada ítem mide el contenido que se le asignó dentro del factor.
+
+Para determinar si los entrevistados respondieron la encuesta con compromiso, se revisaron cuatro attention checks incluidos en el cuestionario. Estos checks se operacionalizaron a partir de una clave de respuestas: \texttt{ac\_1}=1, \texttt{ac\_2}=1, \texttt{ac\_3}=1 y \texttt{ac\_4}=1. Como regla se contó cuántas respuestas coincidían con esa clave y se formaron tres grupos de sensibilidad: al menos dos respuestas correctas, al menos tres y las cuatro respuestas correctas.
+
+La regla se mantuvo separada del criterio de inclusión principal. Después de corregir la clave, las cuatro respuestas esperadas fueron observadas y el estado de las cuatro variables fue ``Expected response observed''. Los 1,211 casos se conservaron como muestra principal. Los grupos de sensibilidad contienen 1,073 casos con al menos dos aciertos, 980 con al menos tres y 823 con los cuatro.
+
+La conversion numerica no introdujo nuevos valores perdidos en las 41 variables revisadas. No obstante, se transformaron 855 valores fuera del rango 1--5 a valores perdidos; los registros visibles en la auditoria corresponden principalmente a valores 0 en los attention checks. Esta decision es coherente con la validacion de una escala Likert, pero debe mantenerse separada de la decision sobre calidad de respuesta.
+
+Los puntajes factoriales descriptivos en los 1,211 casos fueron: actitud positiva $M=3.368$, preocupacion negativa en su direccion original $M=3.373$, version favorable invertida $M=2.627$, Awareness $M=3.784$, Usage $M=3.710$, Evaluation $M=3.761$, Ethics $M=3.568$ y alfabetizacion total $M=3.706$. La baja variabilidad relativa del puntaje total ($SD=.500$) no corrige los problemas de dimensionalidad.
+
+\begin{table}[ht]
+\centering
+\caption{Muestra y clasificación por attention checks}
+\begin{tabular}{lrr}
+\toprule
+Muestra o clasificación & $n$ & Porcentaje \\
+\midrule
+Muestra core completa & 1,211 & 100.0\% \\
+Al menos 2 respuestas correctas & 1,073 & 88.6\% \\
+Al menos 3 respuestas correctas & 980 & 80.9\% \\
+Las 4 respuestas correctas & 823 & 68.0\% \\
+Discrepancia entre clasificación existente y recalculada & 0 & 0.0\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Los valores recalculados del total de respuestas correctas son: 98 participantes con cero aciertos, 40 con uno, 93 con dos, 157 con tres y 823 con cuatro. La validación de la clave no modificó la variable original \texttt{ac\_total}; únicamente corrigió la clave utilizada para reconstruir los indicadores en R.
+
+\textbf{Decisión:} mantener los 1,211 casos como muestra primaria y reportar los tres subsamples como análisis de sensibilidad. La clave ya está validada, pero los attention checks deben interpretarse como evidencia complementaria de compromiso y no como sustituto de la evaluación psicométrica.
+
+\section{Factorabilidad y número de factores}
+
+La factorización es razonable desde el punto de vista de la matriz de correlaciones. El KMO global fue .875 para el conjunto GAAIS y .837 para alfabetización en IA. Las pruebas de Bartlett fueron significativas en ambos casos ($\chi^2=8143.49$, $gl=190$; y $\chi^2=4335.53$, $gl=66$; en ambos casos $p<.001$). No se observaron ítems con varianza cero.
+
+El análisis paralelo sugirió cinco factores para las actitudes y cuatro para alfabetización en IA. Por ello, el modelo de dos factores de GAAIS debe considerarse una prueba de la estructura teórica prevista, no una confirmación inequívoca de la dimensionalidad empírica. El resultado de cinco factores aconseja explorar si existen facetas adicionales, especialmente antes de afirmar una estructura estrictamente bidimensional.
+
+\begin{table}[ht]
+\centering
+\caption{Diagnósticos de factorabilidad}
+\begin{tabular}{lrrrrr}
+\toprule
+Escala & $n$ & Ítems & KMO & Bartlett $\chi^2$ & Factores sugeridos \\
+\midrule
+GAAIS & 1,211 & 20 & .875 & 8,143.49 ($gl=190$) & 5 \\
+Alfabetización en IA & 1,211 & 12 & .837 & 4,335.53 ($gl=66$) & 4 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Confiabilidad interna}
+
+La confiabilidad de GAAIS es adecuada para el factor Positivo ($\alpha=.840$, $\omega=.846$) y aceptable, aunque más limitada, para el factor Negativo invertido ($\alpha=.748$, $\omega=.753$). Estas dos puntuaciones son las más defendibles para análisis sustantivos, siempre acompañadas de evidencia factorial adicional.
+
+Las subescalas de alfabetización en IA son problemáticas, sobre todo porque tienen solo tres ítems cada una. Awareness presenta $\alpha=.384$ y Ethics $\alpha=.274$; Usage presenta $\alpha=.492$ y Evaluation $\alpha=.637$. El total de 12 ítems tiene $\alpha=.737$ y $\omega=.766$, pero este valor no valida automáticamente la interpretación de cuatro subescalas: una escala total puede mostrar consistencia moderada aunque sus dimensiones específicas sean débiles o estén mal diferenciadas.
+
+\begin{table}[ht]
+\centering
+\caption{Confiabilidad interna en la muestra de 1,211 casos}
+\begin{tabular}{lrrrrr}
+\toprule
+Escala & Ítems & $\alpha$ & $\alpha$ est. & $\omega$ & $\bar{r}$ \\
+\midrule
+GAAIS Positivo & 12 & .840 & .844 & .846 & .311 \\
+GAAIS Negativo invertido & 8 & .748 & .749 & .753 & .271 \\
+Awareness & 3 & .384 & .399 & .468 & .181 \\
+Usage & 3 & .492 & .513 & .634 & .260 \\
+Evaluation & 3 & .637 & .637 & .646 & .369 \\
+Ethics & 3 & .274 & .303 & .368 & .126 \\
+Alfabetización total & 12 & .737 & .755 & .766 & .204 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La baja confiabilidad no debe interpretarse únicamente como un problema del tamaño muestral: con $n=1,211$, los intervalos de incertidumbre serían relativamente estrechos. El patrón apunta más bien a heterogeneidad de contenido, ítems incompatibles con sus factores o problemas de recodificación/clave. En particular, la baja confiabilidad de Ethics es coherente con el comportamiento factorial de uno de sus ítems.
+
+\section{Modelo confirmatorio de actitudes GAAIS}
+
+El modelo de dos factores converge y es admisible en las cuatro muestras analizadas. En la muestra completa, las cargas estandarizadas fueron aproximadamente .433--.715 para Positive y .475--.727 para Negative. Las cargas fueron estadísticamente significativas; las figuras de cargas permiten revisar su estabilidad entre las muestras de sensibilidad.
+
+Sin embargo, el ajuste global no alcanza niveles recomendables. En la muestra completa, $CFI=.799$, $TLI=.774$ y $RMSEA=.105$. En los subsamples, el ajuste fue moderadamente mejor: para 1,073 casos, $CFI=.823$, $TLI=.801$ y $RMSEA=.097$; para 980 casos, $CFI=.839$, $TLI=.819$ y $RMSEA=.092$; y para 823 casos, $CFI=.837$, $TLI=.817$ y $RMSEA=.094$. La mejora no convierte el modelo en una solución confirmatoria plenamente satisfactoria.
+
+La correlación latente entre Positive y Negative puede variar entre muestras. Esta sensibilidad debe reportarse descriptivamente y no justifica elegir el subsample con mejores índices, porque la muestra primaria fue definida antes de comparar el ajuste.
+
+\textbf{Interpretación recomendada:} las puntuaciones Positive y Negative pueden utilizarse como dimensiones relacionadas pero diferenciadas, con una advertencia explícita de ajuste CFA limitado. No conviene afirmar que el modelo de dos factores quedó plenamente confirmado.
+
+\section{Modelo confirmatorio de alfabetización en IA}
+
+El modelo de cuatro factores no es admisible en ninguna de las cuatro muestras. En los 1,211 casos, el ajuste fue $CFI=.837$, $TLI=.776$, $RMSEA=.141$ y $SRMR=.079$. En los subsamples de 1,073, 980 y 823 casos, el CFI fue .837, .871 y .874, mientras que el RMSEA fue .135, .119 y .115, respectivamente. Aunque algunos índices mejoran al cambiar la muestra, el problema estructural persiste.
+
+La evidencia más grave es la matriz de covarianzas latentes. Las advertencias de \texttt{lavaan} se repitieron en los ajustes del modelo de cuatro factores porque la matriz no fue positiva definida. Esto indica una solución inadmisible, no simplemente un ajuste mediocre: Awareness y Evaluation no aparecen suficientemente diferenciadas como factores latentes en este modelo.
+
+El registro de ejecución contiene 48 advertencias de este tipo. El número no representa 48 fallos independientes: la misma comprobación se repite al estimar los modelos en las cuatro muestras. Son preocupantes para la interpretación del modelo de cuatro factores, pero no implican que los datos completos o todos los modelos sean inválidos. Por eso el pipeline conserva los ajustes, marca el modelo como inadmisible y evita usarlo para afirmar una estructura confirmada.
+
+Las cargas también señalan problemas concretos:
+
+\begin{itemize}[leftmargin=*]
+  \item \texttt{competence\_ET\_2\_r} mostró una carga prácticamente nula y cambios de signo entre especificaciones. Es un indicador prioritario para revisión de contenido y dirección.
+  \item \texttt{competence\_US\_3\_r} mostró una carga baja en varias estimaciones, aunque mejora en algunas muestras de sensibilidad.
+  \item \texttt{competence\_AW\_8\_r} mostró una carga relativamente baja de .343 en la muestra completa.
+\end{itemize}
+
+El ítem Ethics invertido merece una auditoría sustantiva: el cálculo matemático de inversión es correcto, pero su relación con el factor es prácticamente inexistente. Deben revisarse el texto original del ítem, la dirección conceptual, la clave de inversión y la pertenencia al factor antes de eliminarlo o conservarlo.
+
+\textbf{Interpretación recomendada:} no reportar las cuatro subescalas como factores confirmados. La puntuación total puede conservarse como medida exploratoria o descriptiva, pero su interpretación debe ser prudente debido a la baja confiabilidad de varias subescalas y a la inadmisibilidad del CFA.
+
+\section{Muestra completa frente a subsample de atención}
+
+Los resultados no apoyan reemplazar la muestra primaria por uno de los subsamples. Algunos índices CFA mejoran al aumentar la exigencia de los attention checks, pero el modelo de cuatro factores continúa siendo inadmisible y el modelo de dos factores mantiene un ajuste limitado. Los subsamples deben conservarse como análisis de sensibilidad, no como selección basada en el mejor ajuste.
+
+La decisión recomendada es:
+
+\begin{enumerate}[leftmargin=*]
+  \item Usar los 1,211 casos como muestra principal, porque son todos los casos elegibles con datos completos para los indicadores factoriales.
+  \item Mantener documentada la clave corregida: \texttt{ac\_1}=1, \texttt{ac\_2}=1, \texttt{ac\_3}=1 y \texttt{ac\_4}=1.
+  \item Reportar los subsamples de 1,073, 980 y 823 casos como análisis de sensibilidad.
+  \item No presentar ninguno de los subsamples como muestra ``limpia'' definitiva ni seleccionarlo por producir mejores índices CFA.
+  \item Evitar seleccionar la muestra que produce mejores índices CFA; la selección debe definirse antes del análisis y justificarse por calidad de datos, no por ajuste estadístico.
+\end{enumerate}
+
+\section{Conclusión y plan de revisión}
+
+La escala GAAIS ofrece la evidencia psicométrica más sólida, aunque su modelo de dos factores requiere una mejora del ajuste o una exploración de posibles facetas adicionales. La escala de alfabetización en IA necesita revisión antes de usarse para inferencia confirmatoria: Awareness, Usage y especialmente Ethics presentan consistencia interna baja, y el CFA de cuatro factores es inadmisible por correlaciones latentes superiores a uno.
+
+El orden de trabajo recomendado es: (i) auditar la codificación de los attention checks; (ii) auditar el contenido y la dirección de los tres ítems de competencia invertidos; (iii) revisar matrices policóricas, cargas, correlaciones residuales y posibles errores de asignación; (iv) estimar modelos alternativos guiados por teoría; y (v) validar la solución en una muestra independiente o mediante una división confirmatoria/exploratoria preespecificada. No se recomienda eliminar ítems únicamente para elevar $\alpha$ o mejorar el ajuste.
+
+\section{Analisis bivariado de actitudes}
+
+Con cortes fijados en la media teorica 3 para ambos ejes, 754 participantes (62.3\%) quedaron en ``Positive but concerned'', 209 (17.3\%) en ``Enthusiastic and low-concern'', 204 (16.8\%) en ``Cautious or skeptical'' y 44 (3.6\%) en ``Low-engagement and low-concern''. La correlacion de Pearson entre actitud positiva y preocupacion negativa fue $r=.042$, $p=.142$, y la de Spearman fue $r=-.037$, $p=.197$. Estos resultados no apoyan una asociacion lineal o monotona relevante entre ambas dimensiones.
+
+\section{Comparacion de modelos alternativos}
+
+Se estimaron dos alternativas preespecificadas para diagnosticar la estructura, sin seleccionar automaticamente la que tuviera el mejor indice. La primera combino Awareness y Evaluation; la segunda especifico un factor general. Ninguna produjo un ajuste aceptable en sentido estricto.
+
+\begin{table}[ht]
+\centering
+\caption{Comparacion CFA de modelos de alfabetizacion en IA}
+\begin{tabular}{llrrrrr}
+\toprule
+Muestra & Modelo & $CFI$ & $TLI$ & $RMSEA$ & $SRMR$ & Admisibilidad \\
+\midrule
+1,211 & Cuatro factores & .837 & .776 & .141 & .079 & No \\
+1,211 & Tres factores: \\ Awareness/Evaluation \\ combinados & .835 & .787 & .138 & .079 & Si \\
+1,211 & Factor general & .798 & .753 & .148 & .087 & Si \\
+1,073 & Cuatro factores & .837 & .775 & .135 & .073 & No \\
+1,073 & Tres factores: \\ Awareness/Evaluation \\ combinados & .836 & .787 & .131 & .073 & Si \\
+1,073 & Factor general & .791 & .744 & .144 & .080 & Si \\
+980 & Cuatro factores & .871 & .823 & .119 & .073 & No \\
+980 & Tres factores: \\ Awareness/Evaluation \\ combinados & .871 & .833 & .116 & .071 & Si \\
+980 & Factor general & .828 & .790 & .130 & .078 & Si \\
+823 & Cuatro factores & .874 & .827 & .115 & .073 & No \\
+823 & Tres factores: \\ Awareness/Evaluation \\ combinados & .873 & .835 & .112 & .073 & Si \\
+823 & Factor general & .825 & .786 & .128 & .074 & Si \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La alternativa de tres factores mejora ligeramente el modelo de cuatro factores, pero el $RMSEA$ sigue siendo alto ($.138$ en la muestra completa, $.131$ en 1,073 casos, $.116$ en 980 casos y $.112$ en 823 casos). La mejora no basta para convertirla en modelo confirmatorio. Su utilidad actual es diagnóstica: sugiere que Awareness y Evaluation podrían estar menos diferenciadas de lo previsto, pero esa posibilidad debe confirmarse con argumentos de contenido y una muestra independiente.
+
+El modelo de factor general es el menos atractivo de las alternativas por su peor ajuste relativo. La admisibilidad tecnica no equivale a validez sustantiva, especialmente cuando las subescalas presentan consistencia interna baja.
+
+\section{Diccionario de variables}
+
+El diccionario se incluye para que las decisiones de limpieza, puntuación y modelamiento puedan revisarse sin consultar un archivo externo.
+
+\subsection{Variables generales}
+\small
+\begin{longtable}{p{0.23\textwidth}p{0.68\textwidth}}
+\toprule
+Variable & Descripción \\
+\midrule
+\endfirsthead
+\toprule
+Variable & Descripción \\
+\midrule
+\endhead
+\texttt{ds} & Referencia del conjunto de datos original. \\
+\texttt{id} & Identificador único del participante. \\
+\texttt{consent} & Consentimiento informado: 1 = sí, 0 = no. \\
+\texttt{city} & Ciudad de residencia o lugar reportado. \\
+\texttt{age\_years} & Edad en años. \\
+\texttt{gender} & Género declarado. \\
+\texttt{occupation} & Ocupación principal. \\
+\texttt{study\_work\_area} & Área de estudio o trabajo. \\
+\texttt{commitment} & Compromiso declarado de responder con cuidado y honestidad. \\
+\texttt{tech\_access} & Acceso a dispositivos tecnológicos; podía incluir más de una opción. \\
+\texttt{internet\_quality} & Calidad percibida de la conexión a internet durante el último mes. \\
+\texttt{ai\_use\_frequency} & Frecuencia de uso de aplicaciones de inteligencia artificial. \\
+\bottomrule
+\end{longtable}
+\normalsize
+
+\subsection{Codificación de variables categóricas}
+
+\begin{longtable}{p{0.23\textwidth}p{0.68\textwidth}}
+\toprule
+Variable & Codificación \\
+\midrule
+\endfirsthead
+\toprule
+Variable & Codificación \\
+\midrule
+\endhead
+\texttt{occupation} & 0 = otra; 1 = estudiante universitario; 2 = profesor universitario; 3 = técnico o tecnólogo; 4 = profesional de la salud. \\
+\texttt{study\_work\_area} & 0 = otra; 1 = Psicología; 2 = Enfermería; 3 = Medicina; 4 = otras profesiones de la salud; 5 = Educación; 6 = Ingeniería; 7 = Derecho, ciencias sociales y humanidades; 8 = negocios y comercio. \\
+\texttt{gender} & 0 = prefiere no responder; 1 = mujer; 2 = hombre; 3 = no binario. \\
+\texttt{commitment} & 0 = no asume el compromiso; 1 = sí lo asume; 2 = no puede asumirlo. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Ítems de competencia en IA}
+
+\begin{longtable}{p{0.25\textwidth}p{0.66\textwidth}}
+\toprule
+Variable & Descripción \\
+\midrule
+\endfirsthead
+\toprule
+Variable & Descripción \\
+\midrule
+\endhead
+\texttt{competence\_ET\_2} & Preocupación por problemas de privacidad y seguridad de la información al usar aplicaciones o productos de IA. \\
+\texttt{competence\_ET\_1} & Esfuerzo por seguir principios éticos al usar aplicaciones o productos de IA. \\
+\texttt{competence\_EV\_3} & Capacidad para escoger una solución apropiada entre varias opciones ofrecidas por un agente inteligente. \\
+\texttt{competence\_US\_5} & Capacidad para usar aplicaciones o productos de IA para mejorar la eficiencia del trabajo. \\
+\texttt{competence\_US\_1} & Habilidad para usar aplicaciones basadas en IA como apoyo en el trabajo cotidiano. \\
+\texttt{competence\_AW\_1} & Capacidad para diferenciar dispositivos inteligentes de dispositivos no inteligentes. \\
+\texttt{competence\_US\_3} & Dificultad percibida para aprender a usar una aplicación o producto nuevo de IA. \\
+\texttt{competence\_EV\_6} & Capacidad para seleccionar la aplicación o producto de IA más apropiado para una tarea concreta. \\
+\texttt{competence\_AW\_8} & Comprensión de las formas en que la IA podría ayudar al participante. \\
+\texttt{competence\_ET\_5} & Atención al uso indebido de la tecnología de IA. \\
+\texttt{competence\_AW\_9} & Capacidad para identificar la tecnología de IA presente en las aplicaciones y productos que utiliza. \\
+\texttt{competence\_EV\_2} & Capacidad para evaluar las posibilidades y limitaciones de una aplicación de IA después de usarla durante algún tiempo. \\
+\bottomrule
+\end{longtable}
+
+Los ítems invertidos fueron \texttt{competence\_AW\_8}, \texttt{competence\_US\_3} y \texttt{competence\_ET\_2}. En la base analítica se generaron las versiones \texttt{competence\_AW\_8\_r}, \texttt{competence\_US\_3\_r} y \texttt{competence\_ET\_2\_r} mediante $x_r=6-x$.
+
+\subsection{Ítems de actitudes hacia la IA}
+
+\begin{longtable}{p{0.25\textwidth}p{0.66\textwidth}}
+\toprule
+Variable & Descripción \\
+\midrule
+\endfirsthead
+\toprule
+Variable & Descripción \\
+\midrule
+\endhead
+\texttt{att\_pos\_1} & Preferencia por interactuar con un sistema de IA en lugar de una persona en transacciones rutinarias. \\
+\texttt{att\_pos\_2} & Percepción de que la IA puede crear nuevas oportunidades económicas para el país. \\
+\texttt{att\_neg\_3} & Percepción de que las organizaciones usan la IA de manera poco ética. \\
+\texttt{att\_pos\_4} & Percepción de que los sistemas de IA pueden ayudar a que las personas se sientan más felices. \\
+\texttt{att\_pos\_5} & Impresión positiva sobre lo que la IA puede hacer. \\
+\texttt{att\_neg\_6} & Percepción de que los sistemas de IA cometen muchos errores. \\
+\texttt{att\_pos\_7} & Interés en usar sistemas de IA en la vida cotidiana. \\
+\texttt{att\_neg\_8} & Percepción de que la IA podría tener consecuencias negativas. \\
+\texttt{att\_neg\_9} & Percepción de que la IA podría influir en las decisiones de las personas. \\
+\texttt{att\_neg\_10} & Percepción de que la IA es peligrosa. \\
+\texttt{att\_pos\_11} & Percepción de que la IA puede tener efectos positivos en el bienestar. \\
+\texttt{att\_pos\_12} & Percepción de que la IA es emocionante. \\
+\texttt{att\_pos\_13} & Percepción de que un agente de IA sería mejor que un empleado en muchos trabajos rutinarios. \\
+\texttt{att\_pos\_14} & Percepción de que existen muchas aplicaciones beneficiosas de la IA. \\
+\texttt{att\_neg\_15} & Incomodidad al pensar en los usos futuros de la IA. \\
+\texttt{att\_pos\_16} & Percepción de que los sistemas de IA pueden rendir mejor que las personas en algunas tareas. \\
+\texttt{att\_pos\_17} & Percepción de que gran parte de la sociedad se beneficiará de un futuro con IA. \\
+\texttt{att\_pos\_18} & Deseo de usar IA en el propio trabajo. \\
+\texttt{att\_neg\_19} & Percepción de que personas como el participante sufrirán si aumenta el uso de la IA. \\
+\texttt{att\_neg\_20} & Percepción de que la IA se usa para vigilar a las personas. \\
+\bottomrule
+\end{longtable}
+
+Los ocho ítems negativos se invirtieron para formar una puntuación en dirección favorable: \texttt{att\_neg\_3\_r}, \texttt{att\_neg\_6\_r}, \texttt{att\_neg\_8\_r}, \texttt{att\_neg\_9\_r}, \texttt{att\_neg\_10\_r}, \texttt{att\_neg\_15\_r}, \texttt{att\_neg\_19\_r} y \texttt{att\_neg\_20\_r}.
+
+\subsection{Attention checks y preguntas abiertas}
+
+\begin{longtable}{p{0.25\textwidth}p{0.66\textwidth}}
+\toprule
+Variable & Descripción y regla \\
+\midrule
+\endfirsthead
+\toprule
+Variable & Descripción y regla \\
+\midrule
+\endhead
+\texttt{ac\_1} & Check de competencia: seleccionar ``totalmente en desacuerdo''. Respuesta esperada: 1. \\
+\texttt{ac\_2} & Check de competencia: seleccionar ``totalmente en desacuerdo''. Respuesta esperada: 1. \\
+\texttt{ac\_3} & Check de actitudes: seleccionar ``totalmente en desacuerdo''. Respuesta esperada: 1. \\
+\texttt{ac\_4} & Check de actitudes: seleccionar ``totalmente en desacuerdo''. Respuesta esperada: 1. \\
+\texttt{ac\_competence} & Número de respuestas correctas en \texttt{ac\_1} y \texttt{ac\_2}; rango 0--2. \\
+\texttt{ac\_att} & Número de respuestas correctas en \texttt{ac\_3} y \texttt{ac\_4}; rango 0--2. \\
+\texttt{ac\_total} & Número de respuestas correctas en los cuatro checks; rango 0--4. \\
+\texttt{higher\_ed\_ai\_impact} & Párrafo abierto sobre el impacto actual de la IA en la educación superior. \\
+\texttt{additional\_comments} & Comentarios adicionales o aportes finales del participante. \\
+\bottomrule
+\end{longtable}
+
+\clearpage
+\section{Figuras y su interpretacion}
+
+Las figuras se leen junto con las tablas, no como pruebas independientes. Los graficos descriptivos muestran la distribucion de las respuestas; los graficos de correlaciones y analisis paralelo sirven para explorar la estructura; y los graficos CFA permiten comparar el ajuste y la estabilidad de las soluciones entre muestras. Las figuras se cargan desde la carpeta \texttt{figuras} del proyecto de Overleaf.
+
+\subsection{Descripcion de la muestra y de las respuestas}
+
+\reportfigure{continuous_age_years.png}{Distribucion de la edad en años.}{La figura permite observar el rango y la concentracion de edades. La edad debe describirse como una caracteristica de la muestra, no como evidencia de validez factorial.}
+\pagebreak
+\reportfigure{categorical_gender.png}{Distribucion de la variable género.}{La figura muestra la composicion de la muestra por genero y permite valorar si existen categorias con pocos casos antes de plantear comparaciones entre grupos.}
+\pagebreak
+\reportfigure{categorical_occupation.png}{Distribucion de la ocupacion principal.}{La composicion ocupacional ayuda a interpretar el contexto de uso de la IA. No se debe generalizar a profesionales o estudiantes si una categoria domina la muestra.}
+\pagebreak
+\reportfigure{categorical_study_work_area.png}{Distribucion del area de estudio o trabajo.}{La figura muestra la diversidad de areas representadas. Las diferencias entre areas podrian ser utiles para validez de grupos conocidos, pero deben definirse antes de hacer pruebas de invariancia.}
+\pagebreak
+\reportfigure{categorical_commitment.png}{Distribucion del compromiso declarado.}{El compromiso declarado describe la disposicion de los participantes, pero no reemplaza los attention checks. Por eso el pipeline mantiene ambos indicadores separados.}
+\pagebreak
+\reportfigure{categorical_consent.png}{Distribucion del consentimiento informado.}{La figura documenta el criterio de inclusion utilizado para formar la muestra core. No se observaron exclusiones por variables factoriales, pero el consentimiento sigue siendo un requisito independiente.}
+\pagebreak
+\reportfigure{categorical_ai_use_frequency.png}{Frecuencia de uso de aplicaciones de IA.}{La frecuencia de uso proporciona contexto para las puntuaciones de competencia y actitudes. Puede utilizarse como variable externa en analisis de validez, siempre que la hipotesis se establezca antes del contraste.}
+\pagebreak
+\reportfigure{categorical_internet_quality.png}{Calidad percibida de la conexion a internet.}{Esta figura describe una condicion de respuesta y acceso. No forma parte de los factores psicometricos y no debe introducirse en el CFA como indicador.}
+\pagebreak
+\reportfigure{categorical_laptop.png}{Disponibilidad de laptop.}{La distribucion informa sobre acceso a dispositivos. Las categorias con pocos casos deben combinarse solo con una razon sustantiva y no para mejorar resultados estadisticos.}
+\pagebreak
+\reportfigure{categorical_home_desktop.png}{Disponibilidad de computador de escritorio en el hogar.}{El resultado complementa la descripcion del acceso tecnologico. Se interpreta como contexto de la muestra, no como componente de alfabetizacion en IA.}
+\pagebreak
+\reportfigure{categorical_work_study_desktop.png}{Disponibilidad de computador de escritorio para trabajo o estudio.}{La figura permite distinguir el acceso institucional o laboral del acceso en el hogar. Es una variable descriptiva que puede apoyar analisis de validez externa.}
+\pagebreak
+\reportfigure{categorical_smartphone.png}{Disponibilidad de smartphone.}{La alta o baja disponibilidad indica el alcance potencial de herramientas moviles, pero no mide por si misma competencia o actitud hacia la IA.}
+\pagebreak
+\reportfigure{categorical_tablet.png}{Disponibilidad de tablet.}{La figura completa el perfil de dispositivos. Las frecuencias deben reportarse sin convertirlas en indicadores latentes sin justificacion teorica.}
+
+\subsection{Distribucion de los items}
+
+\reportfigure{likert_attitude_positive.png}{Distribucion de los items de actitud positiva.}{La figura permite revisar asimetria, concentracion en categorias altas y posibles efectos de techo. Estos patrones pueden afectar el ajuste ordinal, pero no justifican eliminar items por su apariencia grafica.}
+\pagebreak
+\reportfigure{likert_attitude_negative_raw.png}{Distribucion de los items negativos antes de la inversion.}{Los items negativos se muestran en su direccion original. La lectura debe distinguir entre una respuesta alta de preocupacion y una puntuacion favorable alta despues de invertirla.}
+\pagebreak
+\reportfigure{likert_ai_competence.png}{Distribucion de los items de alfabetizacion en IA.}{La figura permite comparar la variabilidad de Awareness, Usage, Evaluation y Ethics. La baja consistencia de algunas subescalas no se explica solo por la distribucion: tambien debe considerarse la relacion entre el contenido de los items y el factor.}
+
+\subsection{Correlaciones y dimensionalidad exploratoria}
+
+\reportfigure{correlation_observed_attitude_items.png}{Correlaciones entre los items observados de actitud.}{La matriz sirve para identificar asociaciones debiles, asociaciones muy altas y posibles patrones de metodo. El conjunto es factorizable, pero el analisis paralelo sugirio cinco factores, por lo que el modelo teorico de dos factores debe interpretarse con cautela.}
+\pagebreak
+\reportfigure{correlation_observed_competence_items.png}{Correlaciones entre los items observados de competencia.}{La matriz muestra si los items de las cuatro dimensiones se separan empiricamente. Las relaciones entre Awareness y Evaluation son compatibles con el problema observado en la matriz latente del CFA de cuatro factores.}
+\pagebreak
+\reportfigure{parallel_analysis_attitudes.png}{Analisis paralelo de las actitudes.}{El analisis paralelo sugirio cinco factores. Este resultado es exploratorio y no sustituye una CFA preespecificada, pero indica que la estructura bidimensional puede estar simplificando facetas adicionales del instrumento.}
+\pagebreak
+\reportfigure{parallel_analysis_competence.png}{Analisis paralelo de alfabetizacion en IA.}{El analisis paralelo sugirio cuatro factores, en concordancia con la estructura teorica. Sin embargo, la convergencia entre el numero de factores y la teoria no fue suficiente para obtener una solucion CFA admisible.}
+\pagebreak
+\reportfigure{correlation_factor_scores.png}{Correlaciones entre puntuaciones factoriales y de escala.}{Las puntuaciones resumen permiten estudiar relaciones a nivel de constructo. En particular, no deben utilizarse para ocultar la inadmisibilidad del modelo de cuatro factores: una puntuacion puede calcularse aunque la estructura latente no este confirmada.}
+\pagebreak
+\reportfigure{correlation_factor_score_pairs.png}{Correlaciones por pares entre puntuaciones factoriales.}{La figura ayuda a distinguir asociaciones entre puntuaciones observadas agregadas. Las relaciones altas deben contrastarse con la validez discriminante y no interpretarse automaticamente como evidencia de un factor comun.}
+
+\subsection{Resultados CFA y confiabilidad}
+
+\reportfigure{cfa_fit_attitude_2f_across_attention_samples.png}{Índices de ajuste del modelo GAAIS de dos factores en las muestras configuradas.}{El modelo es admisible en las cuatro muestras. CFI y TLI permanecen por debajo de niveles recomendables y RMSEA es alto; la mejora en los subsamples debe leerse como sensibilidad muestral, no como criterio para reemplazar la muestra principal.}
+\pagebreak
+\reportfigure{cfa_fit_competence_4f_across_attention_samples.png}{Índices de ajuste del modelo de alfabetización de cuatro factores.}{El modelo presenta ajuste insuficiente y, más importante, soluciones inadmisibles en las cuatro muestras. La figura debe leerse junto con las advertencias de `lavaan` y la matriz de covarianzas latentes no positiva definida.}
+\pagebreak
+\reportfigure{cfa_fit_competence_3f_awareness_evaluation_across_attention_samples.png}{Índices de ajuste del modelo exploratorio de tres factores.}{Combinar Awareness y Evaluation mejora poco el ajuste. El modelo es admisible, pero RMSEA permanece alto; por ello se conserva como alternativa exploratoria y no como solución confirmada.}
+\pagebreak
+\reportfigure{cfa_fit_competence_1f_across_attention_samples.png}{Indices de ajuste del modelo exploratorio de factor general.}{El factor general es admisible, pero ofrece el peor ajuste relativo entre las alternativas y no elimina los items con cargas muy bajas. La admisibilidad tecnica no demuestra unidimensionalidad sustantiva.}
+\pagebreak
+\reportfigure{cfa_loadings_across_attention_samples.png}{Cargas factoriales estandarizadas por modelo y muestra.}{La figura muestra estabilidad razonable de las cargas de GAAIS. En alfabetizacion destacan las cargas bajas de \texttt{competence\_ET\_2\_r} y \texttt{competence\_US\_3\_r}; deben revisarse por contenido y direccion antes de modificar la escala.}
+\pagebreak
+\reportfigure{reliability_across_all_attention_samples.png}{Alfa de Cronbach por escala y muestra.}{La confiabilidad de GAAIS se mantiene cerca de niveles aceptables. Awareness, Usage y Ethics permanecen bajas en la muestra principal y en los subsamples, de modo que la selección del subsample no resuelve el problema psicométrico. La línea de .70 es una referencia descriptiva, no una regla automática de selección.}
+\pagebreak
+\reportfigure{model_admissibility_across_samples.png}{Admisibilidad de los modelos por muestra.}{La figura separa la admisibilidad de la calidad del ajuste. El modelo de cuatro factores es inadmisible en las cuatro muestras; los modelos alternativos son admisibles, pero aún presentan ajuste insuficiente.}
+
+\subsection{Attention checks, controles y cuadrantes}
+
+\reportfigure{categorical_ac_competence.png}{Resultados del check de atención de competencia.}{La figura debe interpretarse con la clave corregida del diccionario: \texttt{ac\_1}=1 y \texttt{ac\_2}=1. Ambas respuestas esperadas aparecen en los datos y la clave fue validada.}
+\pagebreak
+\reportfigure{categorical_ac_att.png}{Resultados del check de atención de actitudes.}{La distribución de \texttt{ac\_3} y \texttt{ac\_4} se utiliza para reconstruir el puntaje de atención con la clave \texttt{ac\_3}=1 y \texttt{ac\_4}=1. Las dos respuestas esperadas fueron observadas.}
+\pagebreak
+\reportfigure{categorical_ac_total.png}{Puntaje total de attention checks.}{La figura muestra 98 participantes con cero aciertos, 40 con uno, 93 con dos, 157 con tres y 823 con cuatro. La distribución permite formar los subsamples de 1,073, 980 y 823 casos; no modifica la variable original \texttt{ac\_total}.}
+\pagebreak
+\reportfigure{positive_negative_attitude_quadrants.png}{Cuadrantes de actitudes con cortes teoricos de 3.}{La mayoria de los participantes se ubica en ``Positive but concerned'' (62.3\%). La correlacion entre las dimensiones es pequena y no significativa, por lo que los cuadrantes describen combinaciones de niveles y no deben presentarse como una relacion causal.}
+
+\clearpage
+\section{Recomendación final: muestra primaria y diagnóstico de observaciones influyentes}
+
+\subsection{Muestra recomendada}
+
+La recomendación principal es trabajar con los 1,211 casos de \texttt{all\_core} como muestra primaria. Esta decisión se basa en un criterio definido antes de comparar los índices de ajuste: son los casos elegibles, con información completa para los indicadores factoriales, y la muestra no se selecciona porque produzca un CFI, TLI o RMSEA más favorable. La clave corregida de los attention checks fue validada, pero los checks deben utilizarse como evidencia complementaria de compromiso y no como una razón automática para descartar la muestra completa.
+
+Los subsamples deben conservarse como análisis de sensibilidad. El grupo de 1,073 casos representa el criterio de al menos dos respuestas correctas; el de 980 casos, al menos tres; y el de 823 casos, las cuatro respuestas correctas. El grupo de 823 casos puede presentarse como sensibilidad estricta, pero no como reemplazo de la muestra primaria sin una justificación sustantiva independiente.
+
+Esta recomendación también es compatible con los resultados CFA. El modelo GAAIS de dos factores mejora modestamente en algunos subsamples: el CFI pasa de .799 en \texttt{all\_core} a .837 en \texttt{pass\_all\_4}, y el RMSEA pasa de .105 a .094. Sin embargo, el modelo de cuatro factores de alfabetización en IA permanece inadmisible en todas las muestras. Las alternativas de tres factores y factor general son admisibles, pero conservan un ajuste insuficiente. Por tanto, la mejora de los índices en una muestra más restringida no constituye evidencia suficiente para sustituir la muestra primaria ni para afirmar que la estructura factorial quedó validada.
+
+\subsection{¿Puede haber observaciones aleatorias que dañen el ajuste?}
+
+Sí. En una muestra aleatoria puede haber casos extremos, patrones de respuesta poco frecuentes o combinaciones de respuestas que tengan una influencia desproporcionada sobre la matriz de covarianzas y, por extensión, sobre los índices de ajuste. No obstante, ``influyente'' no significa ``incorrecto''. Una persona con una combinación de actitudes poco común puede representar una parte legítima de la población. El hecho de que al eliminarla mejore el ajuste es una señal diagnóstica, no un criterio de eliminación.
+
+Eliminar filas únicamente porque aumentan el CFI o reducen el RMSEA produciría una muestra condicionada por el resultado y elevaría el riesgo de sobreajuste y p-hacking. La eliminación solo es defendible cuando existe evidencia independiente y documentable de un problema de datos, por ejemplo: duplicación de registros, valores imposibles, incumplimiento de consentimiento, respuesta fuera del rango permitido, contradicciones lógicas verificables o un protocolo de respuesta inválido definido antes del análisis. Las observaciones influyentes que no presentan un error verificable deben mantenerse y su influencia debe reportarse mediante análisis de sensibilidad.
+
+\subsection{Estrategia psicométrica publicada para identificar filas influyentes}
+
+La literatura de modelos de ecuaciones estructurales recomienda distinguir entre residuos de observación, influencia sobre los parámetros e influencia sobre el ajuste. Bollen y Arminger desarrollaron los residuos observacionales para análisis factorial y SEM, mientras que Pek y MacCallum describieron una estrategia de análisis de sensibilidad basada en medidas de influencia y eliminación de casos. Estas propuestas permiten evaluar qué cambia cuando una fila recibe un peso menor o se elimina temporalmente, sin convertir el diagnóstico en una regla automática de depuración.
+
+Para este proyecto se recomienda el siguiente procedimiento, aplicado primero a \texttt{all\_core} y repetido como sensibilidad en \texttt{pass\_all\_4}:
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Auditoría independiente.} Revisar por participante los rangos, duplicados, valores perdidos, consentimiento, compromiso, atención, tiempo de respuesta si está disponible y patrones de respuesta constantes. Esta etapa decide si existe un error observable, no si el caso mejora el ajuste.
+  \item \textbf{Residuos y distancia multivariada.} Calcular residuos estandarizados y una distancia robusta de Mahalanobis sobre los ítems utilizados por cada modelo. Un valor extremo debe revisarse junto con el patrón de respuestas y no interpretarse como prueba aislada de mala calidad.
+  \item \textbf{Influencia por eliminación de caso.} Estimar el modelo completo y, de forma iterativa, el modelo dejando fuera una fila. Para cada caso registrar el cambio en los parámetros, en la matriz de covarianzas latentes y en los índices de ajuste. Conceptualmente, para el parámetro $\boldsymbol{\theta}$ se puede registrar $\Delta_i=\hat{\boldsymbol{\theta}}-\hat{\boldsymbol{\theta}}_{(-i)}$ y, para el ajuste, $\Delta CFI_i$, $\Delta RMSEA_i$ y $\Delta SRMR_i$.
+  \item \textbf{Distancia de verosimilitud y Cook generalizado.} Usar una medida basada en la distancia entre la solución completa y la solución con el caso eliminado, como likelihood distance o generalized Cook's distance. Estas medidas cuantifican influencia sobre el modelo, pero son sensibles a la especificación del modelo; por ello no deben utilizarse para decidir por sí solas qué fila eliminar.
+  \item \textbf{Influencia local.} Perturbar gradualmente el peso de cada caso entre 1 y 0 y observar la curvatura o el cambio de la función de ajuste. La influencia local ayuda a distinguir una observación que ejerce un efecto gradual de una que produce un cambio abrupto, y evita depender únicamente de un umbral arbitrario de eliminación.
+  \item \textbf{Replicación y estabilidad.} Repetir el modelo con bootstrap, particiones exploratoria/confirmatoria o una muestra independiente. Si el modelo solo mejora al eliminar los mismos casos en la muestra original, pero no se replica, la mejora debe considerarse específica de la muestra y no evidencia de una estructura válida.
+\end{enumerate}
+
+En datos Likert, estas verificaciones deben acompañarse de un estimador apropiado para variables ordinales, como WLSMV cuando corresponda, o de una estimación robusta que tenga en cuenta la no normalidad. Cambiar el estimador puede revelar que un aparente problema de ajuste se debe a la escala de medición y no a unas pocas filas. Del mismo modo, una matriz de covarianzas latentes no positiva definida debe investigarse mediante correlaciones entre factores, cargas, identificación y contenido de los ítems; eliminar casos no es una solución matemática aceptable por defecto.
+
+\subsection{Regla de decisión para este estudio}
+
+La regla de decisión propuesta es conservar \texttt{all\_core} como análisis principal, informar los tres subsamples como sensibilidad y crear una tabla de influencia con identificador de participante, motivo del diagnóstico, medida de influencia, cambio en los índices y decisión final. Una fila solo podrá excluirse del análisis confirmatorio si presenta un problema de calidad independiente, reproducible y documentado. En todos los demás casos se conservará en el análisis principal y se informará cuánto cambian las conclusiones cuando se realiza la eliminación temporal.
+
+La recomendación final no es buscar el subconjunto que ``haga funcionar'' el modelo. Es establecer si el modelo es razonable para la población definida, cuantificar la sensibilidad ante observaciones influyentes y validar cualquier reestructuración en datos nuevos. En este conjunto de datos, la evidencia actual favorece reportar la muestra completa, mantener los subsamples como robustez y no eliminar filas únicamente porque las advertencias de \texttt{lavaan} o los índices de ajuste mejoren después de su eliminación.
+
+\subsection{Referencias metodológicas seleccionadas}
+
+\begin{itemize}[leftmargin=*]
+  \item Bollen, K. A., y Arminger, G. (1991). \textit{Observational residuals in factor analysis and structural equation models}. Sociological Methodology, 21, 235--262. DOI: \href{https://doi.org/10.2307/270937}{10.2307/270937}.
+  \item Pek, J., y MacCallum, R. C. (2011). \textit{Sensitivity analysis in structural equation models: Cases and their influence}. Multivariate Behavioral Research, 46(2), 202--228. DOI: \href{https://doi.org/10.1080/00273171.2011.561068}{10.1080/00273171.2011.561068}.
+  \item Cook, R. D. (1977). \textit{Detection of influential observation in linear regression}. Technometrics, 19(1), 15--18. DOI: \href{https://doi.org/10.1080/00401706.1977.10489503}{10.1080/00401706.1977.10489503}. Su distancia sirve como antecedente matemático de los diagnósticos de influencia, pero no debe trasladarse mecánicamente al CFA.
+  \item Atkinson, A. C. (1981). \textit{Two graphical displays for outlying and influential observations in regression}. Biometrika, 68(1), 13--20. DOI: \href{https://doi.org/10.1093/biomet/68.1.13}{10.1093/biomet/68.1.13}.
+  \item \textit{Model-free measurement of case influence in structural equation modeling} (2023). Frontiers in Psychology. DOI: \href{https://doi.org/10.3389/fpsyg.2023.1245863}{10.3389/fpsyg.2023.1245863}.
+\end{itemize}
+
+\end{document}
