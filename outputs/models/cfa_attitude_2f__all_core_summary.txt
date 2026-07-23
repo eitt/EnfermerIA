@@ -1,3 +1,7 @@
+Model: GAAIS two-factor model 
+Sample: All core-eligible observations 
+Rows used: 1211 
+
 lavaan 0.7-2 ended normally after 27 iterations
 
   Estimator                                       DWLS
@@ -5,7 +9,6 @@ lavaan 0.7-2 ended normally after 27 iterations
   Number of model parameters                       101
 
   Number of observations                          1211
-  Number of missing patterns                         1
 
 Model Test User Model:
                                               Standard      Scaled
@@ -67,34 +70,34 @@ Parameter Estimates:
   Information saturated (h1) model        Unstructured
 
 Latent Variables:
-                       Estimate  Std.Err  z-value  P(>|z|)   Std.lv  Std.all
-  Positive =~                                                               
-    att_pos_1             0.480    0.032   15.129    0.000    0.480    0.433
-    att_pos_2             0.770    0.037   20.934    0.000    0.770    0.610
-    att_pos_4             0.717    0.036   19.900    0.000    0.717    0.583
-    att_pos_5             0.574    0.035   16.182    0.000    0.574    0.498
-    att_pos_7             0.979    0.043   22.677    0.000    0.979    0.699
-    att_pos_11            0.986    0.045   22.116    0.000    0.986    0.702
-    att_pos_12            1.012    0.043   23.310    0.000    1.012    0.711
-    att_pos_13            0.569    0.032   17.986    0.000    0.569    0.495
-    att_pos_14            0.918    0.044   20.972    0.000    0.918    0.676
-    att_pos_16            0.611    0.033   18.307    0.000    0.611    0.521
-    att_pos_17            0.821    0.038   21.771    0.000    0.821    0.635
-    att_pos_18            1.023    0.043   23.552    0.000    1.023    0.715
-  NegativeFavorable =~                                                      
-    att_neg_3_r           0.567    0.035   16.182    0.000    0.567    0.493
-    att_neg_6_r           0.541    0.035   15.485    0.000    0.541    0.476
-    att_neg_8_r           1.059    0.051   20.751    0.000    1.059    0.727
-    att_neg_9_r           0.688    0.038   17.997    0.000    0.688    0.567
-    att_neg_10_r          1.046    0.051   20.323    0.000    1.046    0.723
-    att_neg_15_r          0.734    0.036   20.236    0.000    0.734    0.592
-    att_neg_19_r          0.548    0.032   16.912    0.000    0.548    0.481
-    att_neg_20_r          0.540    0.035   15.522    0.000    0.540    0.475
+                   Estimate  Std.Err  z-value  P(>|z|)   Std.lv  Std.all
+  Positive =~                                                           
+    att_pos_1         0.480    0.032   15.129    0.000    0.480    0.433
+    att_pos_2         0.770    0.037   20.934    0.000    0.770    0.610
+    att_pos_4         0.717    0.036   19.900    0.000    0.717    0.583
+    att_pos_5         0.574    0.035   16.182    0.000    0.574    0.498
+    att_pos_7         0.979    0.043   22.677    0.000    0.979    0.699
+    att_pos_11        0.986    0.045   22.116    0.000    0.986    0.702
+    att_pos_12        1.012    0.043   23.310    0.000    1.012    0.711
+    att_pos_13        0.569    0.032   17.986    0.000    0.569    0.495
+    att_pos_14        0.918    0.044   20.972    0.000    0.918    0.676
+    att_pos_16        0.611    0.033   18.307    0.000    0.611    0.521
+    att_pos_17        0.821    0.038   21.771    0.000    0.821    0.635
+    att_pos_18        1.023    0.043   23.552    0.000    1.023    0.715
+  Negative =~                                                           
+    att_neg_3_r       0.567    0.035   16.182    0.000    0.567    0.493
+    att_neg_6_r       0.541    0.035   15.485    0.000    0.541    0.476
+    att_neg_8_r       1.059    0.051   20.751    0.000    1.059    0.727
+    att_neg_9_r       0.688    0.038   17.997    0.000    0.688    0.567
+    att_neg_10_r      1.046    0.051   20.323    0.000    1.046    0.723
+    att_neg_15_r      0.734    0.036   20.236    0.000    0.734    0.592
+    att_neg_19_r      0.548    0.032   16.912    0.000    0.548    0.481
+    att_neg_20_r      0.540    0.035   15.522    0.000    0.540    0.475
 
 Covariances:
                    Estimate  Std.Err  z-value  P(>|z|)   Std.lv  Std.all
   Positive ~~                                                           
-    NegativeFavrbl   -0.058    0.033   -1.772    0.076   -0.058   -0.058
+    Negative         -0.058    0.033   -1.772    0.076   -0.058   -0.058
 
 Thresholds:
                    Estimate  Std.Err  z-value  P(>|z|)   Std.lv  Std.all
@@ -202,7 +205,7 @@ Variances:
    .att_neg_19_r      1.000                               1.000    0.769
    .att_neg_20_r      1.000                               1.000    0.774
     Positive          1.000                               1.000    1.000
-    NegativeFavrbl    1.000                               1.000    1.000
+    Negative          1.000                               1.000    1.000
 
 Scales y*:
                    Estimate  Std.Err  z-value  P(>|z|)   Std.lv  Std.all
@@ -226,4 +229,27 @@ Scales y*:
     att_neg_15_r      0.806                               0.806    1.000
     att_neg_19_r      0.877                               0.877    1.000
     att_neg_20_r      0.880                               0.880    1.000
+
+R-Square:
+                   Estimate
+    att_pos_1         0.187
+    att_pos_2         0.372
+    att_pos_4         0.339
+    att_pos_5         0.248
+    att_pos_7         0.489
+    att_pos_11        0.493
+    att_pos_12        0.506
+    att_pos_13        0.245
+    att_pos_14        0.457
+    att_pos_16        0.272
+    att_pos_17        0.403
+    att_pos_18        0.511
+    att_neg_3_r       0.243
+    att_neg_6_r       0.226
+    att_neg_8_r       0.528
+    att_neg_9_r       0.321
+    att_neg_10_r      0.523
+    att_neg_15_r      0.350
+    att_neg_19_r      0.231
+    att_neg_20_r      0.226
 

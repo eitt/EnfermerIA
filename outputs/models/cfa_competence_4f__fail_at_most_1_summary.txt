@@ -1,0 +1,4 @@
+Model: AI Literacy four-factor model
+Sample: Failed at most one attention check
+Error: lavaan->lav_data_full():  
+   some variables have no values (only missings) or no variance

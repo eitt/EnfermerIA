@@ -1,17 +1,22 @@
 "timestamp","action","object","detail","rows_affected","columns_affected"
-"2026-07-22 12:04:47","import","ds_all_2026_07_22.xlsx","Imported sheet 1",1211,58
-"2026-07-22 12:04:47","rename","age","Renamed age to age_years",,1
-"2026-07-22 12:04:47","reverse-score reconstruction","competence_ET_2_raw","Created from already-scored competence_ET_2_r using 6 - x",1211,1
-"2026-07-22 12:04:47","reverse-score reconstruction","competence_US_3_raw","Created from already-scored competence_US_3_r using 6 - x",1211,1
-"2026-07-22 12:04:47","reverse-score reconstruction","competence_AW_8_raw","Created from already-scored competence_AW_8_r using 6 - x",1211,1
-"2026-07-22 12:04:47","invalid-value recoding","Likert items","Values outside 1-5 were converted to NA",855,
-"2026-07-22 12:04:48","label creation","categorical variables","Created English-language factor labels without replacing numeric source columns",,
-"2026-07-22 12:04:48","row filtering","core analysis sample","Applied consent, commitment, and attention criteria; retained 1211 of 1211 rows",0,
-"2026-07-22 12:04:48","reverse scoring","GAAIS negative items","Created att_neg_3_r, att_neg_6_r, att_neg_8_r, att_neg_9_r, att_neg_10_r, att_neg_15_r, att_neg_19_r, att_neg_20_r using 6 - x",1211,8
-"2026-07-22 12:04:48","scale scoring","attitudes and competence","Row means computed only when at least 80% of scale items were valid",1211,
-"2026-07-22 12:05:00","plot ordering","categorical bar plots","Categories ordered from smallest at the top to largest at the bottom",,
-"2026-07-22 12:05:02","plot ordering","Likert plots","Items ordered by ascending item number from top to bottom; response colors ordered 1 to 5 from left to right",,
-"2026-07-22 12:07:18","correlation analysis","observed items and factor scores","Generated polychoric item matrices and Pearson factor-score matrix with pairwise sample sizes",,
-"2026-07-22 12:14:34","CFA estimation","Attitude and competence measurement models","Estimated three ordinal CFA models using WLSMV. Non-convergent or inadmissible models were retained in the status log but were not interpreted.",1211,32
-"2026-07-22 12:20:03","Plot ordering","Categorical bar plots","Categories were ordered by numeric value when possible, or alphabetically otherwise. The smallest category is displayed at the top and the largest category at the bottom.",,
-"2026-07-22 12:20:05","Plot ordering","Likert plots","Items were ordered by ascending item number from top to bottom. Response categories and colors were arranged from 1 on the left to 5 on the right.",,
+"2026-07-23 10:47:20","Import","ds_all_2026_07_22.xlsx","Imported Excel sheet 1. source_row corresponds to the original Excel row.",1211,59
+"2026-07-23 10:47:20","Duplicate-column resolution","ac_total","Retained ac_total...12 because it had the largest non-missing count. Removed: ac_total...56",,1
+"2026-07-23 10:47:20","Rename","age","Renamed age to age_years.",,1
+"2026-07-23 10:47:20","Legacy-name recovery","competence_AW_8","Created raw-name column competence_AW_8 from legacy column competence_AW_8_r. No reversal was applied at this stage.",1211,1
+"2026-07-23 10:47:20","Legacy-name recovery","competence_US_3","Created raw-name column competence_US_3 from legacy column competence_US_3_r. No reversal was applied at this stage.",1211,1
+"2026-07-23 10:47:20","Legacy-name recovery","competence_ET_2","Created raw-name column competence_ET_2 from legacy column competence_ET_2_r. No reversal was applied at this stage.",1211,1
+"2026-07-23 10:47:20","Numeric conversion","Scale and attention variables","Converted declared numeric variables. New NA values introduced: 0. See numeric_conversion_log.xlsx.",0,41
+"2026-07-23 10:47:20","Invalid-value recoding","Likert and attention-check items","855 cells outside the valid 1-5 range were converted to NA. Every affected row and original value is stored in invalid_value_detail.xlsx.",855,4
+"2026-07-23 10:47:21","Reverse scoring","competence_AW_8_r","competence_AW_8_r = 6 - competence_AW_8.",1211,1
+"2026-07-23 10:47:21","Reverse scoring","competence_US_3_r","competence_US_3_r = 6 - competence_US_3.",1211,1
+"2026-07-23 10:47:21","Reverse scoring","competence_ET_2_r","competence_ET_2_r = 6 - competence_ET_2.",1211,1
+"2026-07-23 10:47:21","Reverse scoring","GAAIS negative items","Created favorable-direction versions: att_neg_3_r, att_neg_6_r, att_neg_8_r, att_neg_9_r, att_neg_10_r, att_neg_15_r, att_neg_19_r, att_neg_20_r. Original negative-concern variables were retained.",1211,8
+"2026-07-23 10:47:21","Attention-check recalculation","ac_competence, ac_att, ac_total","Recalculated scores directly from ac_1-ac_4. Disagreements with stored scores: competence = 1018; attitude = 1043; total = 1074. Rows with any disagreement = 1074. Recalculated scores are used for subsample construction.",1074,3
+"2026-07-23 10:47:22","Core row filtering","Core analysis sample","Applied consent and commitment criteria only. Attention checks were not used for global deletion. Retained 1211 of 1211 rows.",0,
+"2026-07-23 10:47:35","Plot ordering","Categorical bar plots","Categories were ordered by numeric value when possible, or alphabetically otherwise. The smallest category is displayed at the top and the largest category at the bottom.",,
+"2026-07-23 10:47:37","Plot ordering","Likert plots","Items were ordered by ascending item number from top to bottom. Response categories and colors were arranged from 1 on the left to 5 on the right.",,
+"2026-07-23 10:48:57","Parallel analysis","GAAIS attitudes","Suggested factors = 5; suggested components = NA. Removed nonconstant items: none.",,20
+"2026-07-23 10:49:24","Parallel analysis","AI Literacy","Suggested factors = 4; suggested components = NA. Removed nonconstant items: none.",,12
+"2026-07-23 10:49:29","Correlation analysis","Observed items and factor scores","Generated polychoric observed-item matrices and a Pearson factor-score matrix using pairwise available observations. Included scores: attitude_positive, attitude_negative_concern, attitude_negative_favorable, competence_awareness, competence_usage, competence_evaluation, competence_ethics, competence_total.",1211,8
+"2026-07-23 10:49:50","CFA estimation","Attitude and competence measurement models","Estimated the two-factor attitude model and four-factor competence model in all core observations and in three attention-check subsamples. Complete-case filtering was applied separately using only each model's indicator variables. Text summaries, fit tables, loadings, correlations, and plots were saved.",1211,32
+"2026-07-23 10:49:53","Quadrant analysis","Positive and negative attitude dimensions","The quadrant analysis used 1211 rows. 0 rows were excluded only because Positive or Negative attitude scores were unavailable. No unrelated variables were used for drop_na.",0,2

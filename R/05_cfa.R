@@ -1,443 +1,932 @@
-# Confirmatory factor analysis ------------------------------------------------
-# Ordinal CFA using WLSMV. Each model is checked before fit indices are
-# requested so that one inadmissible model does not stop the whole pipeline.
+# Confirmatory factor analysis across attention-check subsamples --------------
 
-att_neg_scored <- paste0(ATT_NEG_ITEMS, "_r")
-att_ordered <- c(ATT_POS_ITEMS, att_neg_scored)
-comp_ordered <- COMP_ALL_ITEMS
+# ---------------------------------------------------------------------------
+# Model definitions
+# ---------------------------------------------------------------------------
 
-att_model <- paste0(
-  "Positive =~ ", paste(ATT_POS_ITEMS, collapse = " + "), "\n",
-  "NegativeFavorable =~ ", paste(att_neg_scored, collapse = " + ")
-)
-
-comp_model_4f <- paste0(
-  "Awareness =~ ", paste(COMP_AWARENESS, collapse = " + "), "\n",
-  "Usage =~ ", paste(COMP_USAGE, collapse = " + "), "\n",
-  "Evaluation =~ ", paste(COMP_EVALUATION, collapse = " + "), "\n",
-  "Ethics =~ ", paste(COMP_ETHICS, collapse = " + ")
-)
-
-# The second-order model is exploratory here. With only four first-order
-# factors it can become empirically inadmissible when factor correlations are
-# very high. It is therefore estimated but never allowed to stop the pipeline.
-comp_model_second_order <- paste0(
-  comp_model_4f, "\n",
-  "AICompetence =~ Awareness + Usage + Evaluation + Ethics"
-)
-
-fit_cfa_safely <- function(model, data, ordered_items, model_name) {
-  fit <- tryCatch(
-    suppressWarnings(lavaan::cfa(
-      model,
-      data = data,
-      ordered = ordered_items,
-      estimator = "WLSMV",
-      std.lv = TRUE,
-      missing = "pairwise",
-      control = list(iter.max = 20000)
-    )),
-    error = function(e) e
+attitude_model_2f <- paste0(
+  "Positive =~ ",
+  paste(
+    ATT_POS_ITEMS,
+    collapse = " + "
+  ),
+  "\n",
+  "Negative =~ ",
+  paste(
+    ATT_NEG_SCORED,
+    collapse = " + "
   )
+)
 
-  if (inherits(fit, "error")) {
-    return(list(
-      fit = NULL,
-      status = tibble::tibble(
-        model = model_name,
-        converged = FALSE,
-        admissible_solution = FALSE,
-        n_used = NA_integer_,
-        free_parameters = NA_integer_,
-        warning_or_error = conditionMessage(fit)
-      )
-prepare_ordinal_data <- function(data, vars) {
-  out <- data[, vars, drop = FALSE]
-  out[] <- lapply(out, function(x) {
-    x <- suppressWarnings(as.integer(x))
-    ordered(x, levels = sort(unique(x[!is.na(x)])))
-  })
-  out
+competence_model_4f <- paste0(
+  "Awareness =~ ",
+  paste(
+    COMP_AWARENESS,
+    collapse = " + "
+  ),
+  "\n",
+  "Usage =~ ",
+  paste(
+    COMP_USAGE,
+    collapse = " + "
+  ),
+  "\n",
+  "Evaluation =~ ",
+  paste(
+    COMP_EVALUATION,
+    collapse = " + "
+  ),
+  "\n",
+  "Ethics =~ ",
+  paste(
+    COMP_ETHICS,
+    collapse = " + "
+  )
+)
+
+model_definitions <- list(
+  attitude_2f = list(
+    label = "GAAIS two-factor model",
+    syntax = attitude_model_2f,
+    indicators = ATTITUDE_MODEL_ITEMS
+  ),
+  competence_4f = list(
+    label = "AI Literacy four-factor model",
+    syntax = competence_model_4f,
+    indicators = COMP_ALL_ITEMS
+  )
+)
+
+# ---------------------------------------------------------------------------
+# Create attention-check subsamples
+# ---------------------------------------------------------------------------
+
+create_attention_subsample <- function(
+    data,
+    minimum_correct
+) {
+  
+  if (minimum_correct <= 0) {
+    return(data)
+  }
+  
+  data |>
+    dplyr::filter(
+      !is.na(ac_total_recalculated),
+      ac_total_recalculated >= minimum_correct
+    )
 }
 
-att_cfa_data <- prepare_ordinal_data(analysis_data, att_ordered)
-comp_cfa_data <- prepare_ordinal_data(analysis_data, comp_ordered)
+analysis_subsamples <- purrr::imap(
+  ATTENTION_SUBSAMPLES,
+  function(specification, sample_key) {
+    
+    sample_data <- create_attention_subsample(
+      analysis_data,
+      specification$minimum_correct
+    )
+    
+    attr(
+      sample_data,
+      "sample_key"
+    ) <- sample_key
+    
+    attr(
+      sample_data,
+      "sample_label"
+    ) <- specification$label
+    
+    sample_data
+  }
+)
 
-safe_cfa <- function(model, data, ordered_vars, model_name) {
+# ---------------------------------------------------------------------------
+# Prepare ordinal model data
+# ---------------------------------------------------------------------------
+# drop_na is applied only to indicators belonging to the current model.
+
+prepare_cfa_data <- function(
+    data,
+    indicators,
+    model_label,
+    sample_label
+) {
+  
+  missing_indicators <- setdiff(
+    indicators,
+    names(data)
+  )
+  
+  if (length(missing_indicators) > 0) {
+    stop(
+      model_label,
+      " is missing variables: ",
+      paste(
+        missing_indicators,
+        collapse = ", "
+      )
+    )
+  }
+  
+  original_n <- nrow(data)
+  
+  indicator_data <- data |>
+    dplyr::select(
+      dplyr::all_of(indicators)
+    ) |>
+    dplyr::mutate(
+      dplyr::across(
+        dplyr::everything(),
+        ~ suppressWarnings(
+          as.numeric(.x)
+        )
+      )
+    )
+  
+  incomplete_rows <- !stats::complete.cases(
+    indicator_data
+  )
+  
+  excluded_detail <- tibble::tibble(
+    sample = sample_label,
+    model = model_label,
+    source_row = data$source_row[
+      incomplete_rows
+    ],
+    id = if ("id" %in% names(data)) {
+      as.character(
+        data$id[incomplete_rows]
+      )
+    } else {
+      NA_character_
+    },
+    missing_indicators = apply(
+      is.na(
+        indicator_data[incomplete_rows, , drop = FALSE]
+      ),
+      1,
+      function(x) {
+        paste(
+          indicators[x],
+          collapse = ", "
+        )
+      }
+    )
+  )
+  
+  complete_data <- indicator_data[
+    !incomplete_rows,
+    ,
+    drop = FALSE
+  ]
+  
+  for (variable in indicators) {
+    
+    observed_levels <- sort(
+      unique(
+        complete_data[[variable]]
+      )
+    )
+    
+    complete_data[[variable]] <- ordered(
+      complete_data[[variable]],
+      levels = observed_levels
+    )
+  }
+  
+  list(
+    data = complete_data,
+    original_n = original_n,
+    complete_n = nrow(complete_data),
+    excluded_n = sum(incomplete_rows),
+    excluded_detail = excluded_detail
+  )
+}
+
+# ---------------------------------------------------------------------------
+# Safe CFA estimator
+# ---------------------------------------------------------------------------
+
+fit_cfa_safely <- function(
+    model_syntax,
+    prepared_data,
+    indicators,
+    model_key,
+    model_label,
+    sample_key,
+    sample_label
+) {
+  
   warnings_captured <- character(0)
+  
   fit <- withCallingHandlers(
     tryCatch(
       lavaan::cfa(
-        model = model,
-        data = data,
-        ordered = ordered_vars,
+        model = model_syntax,
+        data = prepared_data,
+        ordered = indicators,
         estimator = "WLSMV",
         parameterization = "theta",
         std.lv = TRUE,
-        missing = "pairwise",
-        control = list(iter.max = 10000)
+        missing = "listwise",
+        control = list(
+          iter.max = 20000
+        )
       ),
-      error = function(e) structure(list(error = conditionMessage(e)), class = "cfa_error")
+      error = function(e) {
+        structure(
+          list(
+            message = conditionMessage(e)
+          ),
+          class = "cfa_error"
+        )
+      }
     ),
     warning = function(w) {
-      warnings_captured <<- c(warnings_captured, conditionMessage(w))
-      invokeRestart("muffleWarning")
+      
+      warnings_captured <<- c(
+        warnings_captured,
+        conditionMessage(w)
+      )
+      
+      invokeRestart(
+        "muffleWarning"
+      )
     }
   )
-
+  
   if (inherits(fit, "cfa_error")) {
-    return(list(
-      name = model_name, fit = NULL, converged = FALSE, admissible = FALSE,
-      error = fit$error, warnings = unique(warnings_captured)
-    ))
+    
+    return(
+      list(
+        model_key = model_key,
+        model_label = model_label,
+        sample_key = sample_key,
+        sample_label = sample_label,
+        fit = NULL,
+        converged = FALSE,
+        post_check = FALSE,
+        admissible = FALSE,
+        min_eigen_latent_covariance = NA_real_,
+        error = fit$message,
+        warnings = unique(warnings_captured)
+      )
+    )
   }
-
-  converged <- isTRUE(lavaan::lavInspect(fit, "converged"))
-  post_check <- tryCatch(lavaan::lavInspect(fit, "post.check"), error = function(e) FALSE)
-  cov_lv <- tryCatch(lavaan::lavInspect(fit, "cov.lv"), error = function(e) NULL)
-  min_eigen <- if (is.null(cov_lv)) NA_real_ else min(eigen(cov_lv, symmetric = TRUE, only.values = TRUE)$values)
-  admissible <- converged && isTRUE(post_check) && (is.na(min_eigen) || min_eigen > -1e-6)
-
-  warning_text <- character(0)
-  if (!converged) warning_text <- c(warning_text, "Model did not converge")
-  if (!isTRUE(post_check)) warning_text <- c(warning_text, "lavaan post-estimation check failed")
-  if (!is.na(min_eigen) && min_eigen <= -1e-6) warning_text <- c(warning_text, "Latent covariance matrix is not positive definite")
-
+  
+  converged <- tryCatch(
+    isTRUE(
+      lavaan::lavInspect(
+        fit,
+        "converged"
+      )
+    ),
+    error = function(e) FALSE
+  )
+  
+  post_check <- tryCatch(
+    isTRUE(
+      lavaan::lavInspect(
+        fit,
+        "post.check"
+      )
+    ),
+    error = function(e) FALSE
+  )
+  
+  latent_covariance <- tryCatch(
+    lavaan::lavInspect(
+      fit,
+      "cov.lv"
+    ),
+    error = function(e) NULL
+  )
+  
+  min_eigen <- if (
+    is.null(latent_covariance)
+  ) {
+    NA_real_
+  } else {
+    tryCatch(
+      min(
+        eigen(
+          latent_covariance,
+          symmetric = TRUE,
+          only.values = TRUE
+        )$values
+      ),
+      error = function(e) NA_real_
+    )
+  }
+  
+  admissible <- (
+    converged &&
+      post_check &&
+      (
+        is.na(min_eigen) ||
+          min_eigen > -1e-6
+      )
+  )
+  
   list(
+    model_key = model_key,
+    model_label = model_label,
+    sample_key = sample_key,
+    sample_label = sample_label,
     fit = fit,
-    status = tibble::tibble(
-      model = model_name,
-      converged = converged,
-      admissible_solution = admissible,
-      n_used = tryCatch(lavaan::lavInspect(fit, "nobs"), error = function(e) NA_integer_),
-      free_parameters = tryCatch(lavaan::lavInspect(fit, "npar"), error = function(e) NA_integer_),
-      warning_or_error = if (length(warning_text) == 0) "None" else paste(warning_text, collapse = "; ")
+    converged = converged,
+    post_check = post_check,
+    admissible = admissible,
+    min_eigen_latent_covariance = min_eigen,
+    error = NA_character_,
+    warnings = unique(warnings_captured)
+  )
+}
+
+# ---------------------------------------------------------------------------
+# Extract model outputs
+# ---------------------------------------------------------------------------
+
+requested_fit_indices <- c(
+  "chisq.scaled",
+  "df.scaled",
+  "pvalue.scaled",
+  "cfi.scaled",
+  "tli.scaled",
+  "rmsea.scaled",
+  "rmsea.ci.lower.scaled",
+  "rmsea.ci.upper.scaled",
+  "srmr"
+)
+
+extract_fit_indices <- function(result) {
+  
+  if (
+    is.null(result$fit) ||
+    !result$converged
+  ) {
+    
+    return(
+      tibble::tibble(
+        model_key = result$model_key,
+        model = result$model_label,
+        sample_key = result$sample_key,
+        sample = result$sample_label,
+        fit_index = requested_fit_indices,
+        value = NA_real_
+      )
+    )
+  }
+  
+  fit_values <- tryCatch(
+    lavaan::fitMeasures(
+      result$fit
+    ),
+    error = function(e) numeric(0)
+  )
+  
+  tibble::tibble(
+    model_key = result$model_key,
+    model = result$model_label,
+    sample_key = result$sample_key,
+    sample = result$sample_label,
+    fit_index = requested_fit_indices,
+    value = as.numeric(
+      fit_values[
+        requested_fit_indices
+      ]
     )
   )
 }
 
-extract_fit_safely <- function(fit_result, model_name, sample_label = "Full sample") {
-  fit <- fit_result$fit
-  if (is.null(fit) || !isTRUE(fit_result$status$converged)) {
-    return(tibble::tibble(
-      model = model_name, sample = sample_label,
-      measure = c("chisq.scaled", "df.scaled", "pvalue.scaled", "cfi.scaled", "tli.scaled",
-                  "rmsea.scaled", "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", "srmr"),
-      value = NA_real_
-    ))
+extract_loadings <- function(result) {
+  
+  if (
+    is.null(result$fit) ||
+    !result$converged
+  ) {
+    return(
+      tibble::tibble()
+    )
   }
-  requested <- c("chisq.scaled", "df.scaled", "pvalue.scaled", "cfi.scaled", "tli.scaled",
-                 "rmsea.scaled", "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", "srmr")
-  vals <- tryCatch(lavaan::fitMeasures(fit), error = function(e) NULL)
-  tibble::tibble(
-    model = model_name,
-    sample = sample_label,
-  post_check <- tryCatch(isTRUE(lavaan::lavInspect(fit, "post.check")), error = function(e) FALSE)
-  cov_lv <- tryCatch(lavaan::lavInspect(fit, "cov.lv"), error = function(e) NULL)
-  min_eigen_cov_lv <- if (is.null(cov_lv)) NA_real_ else min(eigen(cov_lv, symmetric = TRUE, only.values = TRUE)$values)
-  admissible <- converged && post_check && (is.na(min_eigen_cov_lv) || min_eigen_cov_lv > 1e-8)
-
-  list(
-    name = model_name, fit = fit, converged = converged,
-    admissible = admissible, error = NA_character_,
-    warnings = unique(warnings_captured), min_eigen_cov_lv = min_eigen_cov_lv
-  )
-}
-
-results <- list(
-  attitudes = safe_cfa(
-    att_model, att_cfa_data, att_ordered,
-    "GAAIS: correlated Positive and NegativeFavorable factors"
-  ),
-  competence_4f = safe_cfa(
-    comp_model_4f, comp_cfa_data, comp_ordered,
-    "AI Literacy: four correlated factors"
-  ),
-  competence_second = safe_cfa(
-    comp_model_second_order, comp_cfa_data, comp_ordered,
-    "AI Literacy: second-order competence factor"
-  )
-)
-
-extract_fit <- function(res) {
-  requested <- c(
-    "chisq.scaled", "df.scaled", "pvalue.scaled", "cfi.scaled", "tli.scaled",
-    "rmsea.scaled", "rmsea.ci.lower.scaled", "rmsea.ci.upper.scaled", "srmr"
-  )
-  if (is.null(res$fit) || !res$converged) {
-    return(tibble::tibble(model = res$name, measure = requested, value = NA_real_))
-  }
-  vals <- tryCatch(lavaan::fitMeasures(res$fit), error = function(e) numeric(0))
-  tibble::tibble(
-    model = res$name,
-    measure = requested,
-    value = if (is.null(vals)) NA_real_ else unname(vals[requested])
-  )
-}
-
-loading_table_safely <- function(fit_result, model_name, sample_label = "Full sample") {
-  fit <- fit_result$fit
-  if (is.null(fit) || !isTRUE(fit_result$status$converged)) return(tibble::tibble())
+  
   tryCatch(
-    lavaan::standardizedSolution(fit) |>
-      dplyr::filter(op == "=~") |>
+    lavaan::standardizedSolution(
+      result$fit
+    ) |>
+      dplyr::filter(
+        op == "=~"
+      ) |>
       dplyr::transmute(
-        model = model_name,
-        sample = sample_label,
+        model_key = result$model_key,
+        model = result$model_label,
+        sample_key = result$sample_key,
+        sample = result$sample_label,
         factor = lhs,
         item = rhs,
-        standardized_loading = est.std,
+        loading = est.std,
         se = se,
         z = z,
-        p = pvalue
+        p_value = pvalue,
+        na_reason = dplyr::case_when(
+          is.na(se) & !result$converged ~
+            "Model did not converge",
+          is.na(se) & !result$admissible ~
+            "Model solution was inadmissible",
+          is.na(se) ~
+            "Standard error unavailable; inspect identification or boundary estimates",
+          TRUE ~
+            NA_character_
+        )
       ),
-    error = function(e) tibble::tibble()
+    error = function(e) {
+      tibble::tibble()
+    }
   )
 }
 
-latent_correlations_safely <- function(fit_result, model_name) {
-  fit <- fit_result$fit
-  if (is.null(fit) || !isTRUE(fit_result$status$converged)) return(tibble::tibble())
-  cor_lv <- tryCatch(lavaan::lavInspect(fit, "cor.lv"), error = function(e) NULL)
-  if (is.null(cor_lv)) return(tibble::tibble())
-  as.data.frame(as.table(cor_lv)) |>
-    dplyr::rename(factor_1 = Var1, factor_2 = Var2, correlation = Freq) |>
-    dplyr::mutate(model = model_name, .before = 1)
+extract_latent_correlations <- function(result) {
+  
+  if (
+    is.null(result$fit) ||
+    !result$converged
+  ) {
+    return(
+      tibble::tibble()
+    )
+  }
+  
+  latent_correlations <- tryCatch(
+    lavaan::lavInspect(
+      result$fit,
+      "cor.lv"
+    ),
+    error = function(e) NULL
+  )
+  
+  if (is.null(latent_correlations)) {
+    return(
+      tibble::tibble()
+    )
+  }
+  
+  as.data.frame(
+    as.table(
+      latent_correlations
+    )
+  ) |>
+    dplyr::rename(
+      factor_1 = Var1,
+      factor_2 = Var2,
+      correlation = Freq
+    ) |>
+    dplyr::mutate(
+      model_key = result$model_key,
+      model = result$model_label,
+      sample_key = result$sample_key,
+      sample = result$sample_label,
+      .before = 1
+    )
 }
 
-reliability_cfa_safely <- function(fit_result, model_name) {
-  fit <- fit_result$fit
-  if (is.null(fit) || !isTRUE(fit_result$status$converged) || !isTRUE(fit_result$status$admissible_solution)) {
-    return(tibble::tibble(model = model_name, factor = NA_character_,
-                          composite_reliability = NA_real_, ave = NA_real_))
-  }
-  rel <- tryCatch(semTools::compRelSEM(fit), error = function(e) NULL)
-  ave <- tryCatch(semTools::AVE(fit), error = function(e) NULL)
-  factors <- union(names(rel), names(ave))
-  if (length(factors) == 0) {
-    return(tibble::tibble(model = model_name, factor = NA_character_,
-                          composite_reliability = NA_real_, ave = NA_real_))
-  }
-model_status <- dplyr::bind_rows(lapply(results, function(res) {
-  tibble::tibble(
-    model = res$name,
-    converged = res$converged,
-    admissible_solution = res$admissible,
-    min_eigenvalue_latent_covariance = res$min_eigen_cov_lv %||% NA_real_,
-    error = res$error,
-    warnings = if (length(res$warnings) == 0) NA_character_ else paste(res$warnings, collapse = " | ")
+# ---------------------------------------------------------------------------
+# Estimate every model in every attention-check sample
+# ---------------------------------------------------------------------------
+
+all_results <- list()
+model_sample_log <- list()
+excluded_row_logs <- list()
+
+for (sample_key in names(analysis_subsamples)) {
+  
+  sample_data <- analysis_subsamples[[sample_key]]
+  
+  sample_label <- attr(
+    sample_data,
+    "sample_label"
   )
-}))
+  
+  message(
+    "\n============================================================"
+  )
+  
+  message(
+    "CFA sample: ",
+    sample_label,
+    " | n before model-specific missingness = ",
+    nrow(sample_data)
+  )
+  
+  message(
+    "============================================================"
+  )
+  
+  for (model_key in names(model_definitions)) {
+    
+    definition <- model_definitions[[model_key]]
+    
+    prepared <- prepare_cfa_data(
+      data = sample_data,
+      indicators = definition$indicators,
+      model_label = definition$label,
+      sample_label = sample_label
+    )
+    
+    message(
+      "\nModel: ",
+      definition$label
+    )
+    
+    message(
+      "Rows before model-specific complete-case filtering: ",
+      prepared$original_n
+    )
+    
+    message(
+      "Rows retained for this model: ",
+      prepared$complete_n
+    )
+    
+    message(
+      "Rows excluded because one or more model indicators were missing: ",
+      prepared$excluded_n
+    )
+    
+    result <- fit_cfa_safely(
+      model_syntax = definition$syntax,
+      prepared_data = prepared$data,
+      indicators = definition$indicators,
+      model_key = model_key,
+      model_label = definition$label,
+      sample_key = sample_key,
+      sample_label = sample_label
+    )
+    
+    result_name <- paste(
+      model_key,
+      sample_key,
+      sep = "__"
+    )
+    
+    all_results[[result_name]] <- result
+    
+    model_sample_log[[result_name]] <- tibble::tibble(
+      model_key = model_key,
+      model = definition$label,
+      sample_key = sample_key,
+      sample = sample_label,
+      n_before_model_missingness = prepared$original_n,
+      n_used = prepared$complete_n,
+      n_excluded_for_model_missingness = prepared$excluded_n,
+      converged = result$converged,
+      post_check = result$post_check,
+      admissible = result$admissible,
+      min_eigen_latent_covariance =
+        result$min_eigen_latent_covariance,
+      error = result$error,
+      warnings = ifelse(
+        length(result$warnings) == 0,
+        NA_character_,
+        paste(
+          result$warnings,
+          collapse = " | "
+        )
+      )
+    )
+    
+    if (nrow(prepared$excluded_detail) > 0) {
+      excluded_row_logs[[result_name]] <-
+        prepared$excluded_detail
+    }
+    
+    # Print model fit to the console.
+    if (is.null(result$fit)) {
+      
+      message(
+        "Model estimation failed: ",
+        result$error
+      )
+      
+    } else {
+      
+      print(
+        lavaan::fitMeasures(
+          result$fit,
+          requested_fit_indices
+        )
+      )
+      
+      message(
+        "Converged: ",
+        result$converged,
+        " | admissible: ",
+        result$admissible
+      )
+    }
+    
+    # Save complete textual print.
+    summary_file <- file.path(
+      MODEL_DIR,
+      paste0(
+        "cfa_",
+        model_key,
+        "__",
+        sample_key,
+        "_summary.txt"
+      )
+    )
+    
+    if (is.null(result$fit)) {
+      
+      writeLines(
+        c(
+          paste(
+            "Model:",
+            definition$label
+          ),
+          paste(
+            "Sample:",
+            sample_label
+          ),
+          paste(
+            "Error:",
+            result$error
+          )
+        ),
+        summary_file
+      )
+      
+    } else {
+      
+      capture.output(
+        {
+          cat(
+            "Model:",
+            definition$label,
+            "\n"
+          )
+          
+          cat(
+            "Sample:",
+            sample_label,
+            "\n"
+          )
+          
+          cat(
+            "Rows used:",
+            prepared$complete_n,
+            "\n\n"
+          )
+          
+          print(
+            summary(
+              result$fit,
+              fit.measures = TRUE,
+              standardized = TRUE,
+              rsquare = TRUE
+            )
+          )
+        },
+        file = summary_file
+      )
+    }
+  }
+}
 
-fit_summary <- dplyr::bind_rows(lapply(results, extract_fit))
+# ---------------------------------------------------------------------------
+# Combine outputs
+# ---------------------------------------------------------------------------
 
-loading_table <- function(res) {
-  if (is.null(res$fit) || !res$converged) return(tibble::tibble())
-  tryCatch(
-    lavaan::standardizedSolution(res$fit) |>
-      dplyr::filter(op == "=~") |>
-      dplyr::transmute(
-        model = res$name, factor = lhs, item = rhs,
-        standardized_loading = est.std, se = se, z = z, p = pvalue
+model_status <- dplyr::bind_rows(
+  model_sample_log
+)
+
+fit_indices <- purrr::map_dfr(
+  all_results,
+  extract_fit_indices
+)
+
+loadings <- purrr::map_dfr(
+  all_results,
+  extract_loadings
+)
+
+latent_correlations <- purrr::map_dfr(
+  all_results,
+  extract_latent_correlations
+)
+
+excluded_for_model_missingness <- dplyr::bind_rows(
+  excluded_row_logs
+)
+
+# ---------------------------------------------------------------------------
+# Wide fit comparison
+# ---------------------------------------------------------------------------
+
+fit_comparison <- fit_indices |>
+  tidyr::pivot_wider(
+    names_from = fit_index,
+    values_from = value
+  )
+
+print(
+  fit_comparison,
+  n = Inf
+)
+
+# ---------------------------------------------------------------------------
+# Fit-index figures
+# ---------------------------------------------------------------------------
+
+fit_plot_data <- fit_indices |>
+  dplyr::filter(
+    fit_index %in% c(
+      "cfi.scaled",
+      "tli.scaled",
+      "rmsea.scaled",
+      "srmr"
+    ),
+    !is.na(value)
+  ) |>
+  dplyr::mutate(
+    fit_index = factor(
+      fit_index,
+      levels = c(
+        "cfi.scaled",
+        "tli.scaled",
+        "rmsea.scaled",
+        "srmr"
       ),
-    error = function(e) tibble::tibble()
+      labels = c(
+        "CFI",
+        "TLI",
+        "RMSEA",
+        "SRMR"
+      )
+    )
+  )
+
+for (current_model in unique(fit_plot_data$model_key)) {
+  
+  current_data <- fit_plot_data |>
+    dplyr::filter(
+      model_key == current_model
+    )
+  
+  if (nrow(current_data) == 0) {
+    next
+  }
+  
+  p <- ggplot2::ggplot(
+    current_data,
+    ggplot2::aes(
+      x = sample,
+      y = value,
+      group = fit_index,
+      linetype = fit_index,
+      shape = fit_index
+    )
+  ) +
+    ggplot2::geom_line(
+      linewidth = 0.8
+    ) +
+    ggplot2::geom_point(
+      size = 2.8
+    ) +
+    ggplot2::facet_wrap(
+      ~ fit_index,
+      scales = "free_y"
+    ) +
+    ggplot2::labs(
+      title = paste0(
+        "CFA fit across attention-check subsamples: ",
+        unique(current_data$model)
+      ),
+      x = NULL,
+      y = "Fit-index value",
+      linetype = "Fit index",
+      shape = "Fit index"
+    ) +
+    ggplot2::theme(
+      axis.text.x = ggplot2::element_text(
+        angle = 25,
+        hjust = 1
+      )
+    ) +
+    theme_accessible()
+  
+  save_plot_300(
+    p,
+    file.path(
+      FIGURE_DIR,
+      paste0(
+        "cfa_fit_",
+        current_model,
+        "_across_attention_samples.png"
+      )
+    ),
+    width = 11,
+    height = 7
   )
 }
-loadings <- dplyr::bind_rows(lapply(results, loading_table))
 
-reliability_cfa <- function(res) {
-  if (is.null(res$fit) || !res$converged || !res$admissible) return(tibble::tibble())
-  rel <- tryCatch(semTools::compRelSEM(res$fit), error = function(e) NULL)
-  ave <- tryCatch(semTools::AVE(res$fit), error = function(e) NULL)
-  factors <- union(names(rel), names(ave))
-  if (length(factors) == 0) return(tibble::tibble())
-  tibble::tibble(
-    model = res$name,
-    factor = factors,
-    composite_reliability = if (is.null(rel)) NA_real_ else as.numeric(rel[factors]),
-    ave = if (is.null(ave)) NA_real_ else as.numeric(ave[factors])
+# ---------------------------------------------------------------------------
+# Loading plots
+# ---------------------------------------------------------------------------
+
+if (nrow(loadings) > 0) {
+  
+  loading_plot <- loadings |>
+    dplyr::filter(
+      !is.na(loading)
+    ) |>
+    ggplot2::ggplot(
+      ggplot2::aes(
+        x = loading,
+        y = forcats::fct_reorder(
+          item,
+          loading
+        ),
+        shape = sample
+      )
+    ) +
+    ggplot2::geom_vline(
+      xintercept = 0.50,
+      linetype = 2
+    ) +
+    ggplot2::geom_point(
+      size = 2.4,
+      alpha = 0.75
+    ) +
+    ggplot2::facet_grid(
+      model ~ factor,
+      scales = "free_y",
+      space = "free_y"
+    ) +
+    ggplot2::labs(
+      title = "Standardized CFA loadings across attention-check samples",
+      x = "Standardized loading",
+      y = NULL,
+      shape = "Sample"
+    ) +
+    theme_accessible()
+  
+  save_plot_300(
+    loading_plot,
+    file.path(
+      FIGURE_DIR,
+      "cfa_loadings_across_attention_samples.png"
+    ),
+    width = 12,
+    height = 12
   )
 }
 
-# Full-sample models.
-fit_att <- fit_cfa_safely(att_model, analysis_data, att_ordered, "GAAIS two-factor")
-fit_comp_4f <- fit_cfa_safely(comp_model_4f, analysis_data, comp_ordered, "AI Literacy four-factor")
-fit_comp_second <- fit_cfa_safely(comp_model_second_order, analysis_data, comp_ordered,
-                                  "AI Literacy second-order")
-
-model_status <- dplyr::bind_rows(fit_att$status, fit_comp_4f$status, fit_comp_second$status)
-fit_summary <- dplyr::bind_rows(
-  extract_fit_safely(fit_att, "GAAIS two-factor"),
-  extract_fit_safely(fit_comp_4f, "AI Literacy four-factor"),
-  extract_fit_safely(fit_comp_second, "AI Literacy second-order")
-)
-loadings <- dplyr::bind_rows(
-  loading_table_safely(fit_att, "GAAIS two-factor"),
-  loading_table_safely(fit_comp_4f, "AI Literacy four-factor"),
-  loading_table_safely(fit_comp_second, "AI Literacy second-order")
-)
-latent_correlations <- dplyr::bind_rows(
-  latent_correlations_safely(fit_att, "GAAIS two-factor"),
-  latent_correlations_safely(fit_comp_4f, "AI Literacy four-factor"),
-  latent_correlations_safely(fit_comp_second, "AI Literacy second-order")
-)
-validity <- dplyr::bind_rows(
-  reliability_cfa_safely(fit_att, "GAAIS two-factor"),
-  reliability_cfa_safely(fit_comp_4f, "AI Literacy four-factor"),
-  reliability_cfa_safely(fit_comp_second, "AI Literacy second-order")
-)
-
-# Split-sample cross-validation for the two primary first-order models.
-# This is not a multigroup invariance analysis; it is a stability check.
-set.seed(CFA_CV_SEED)
-row_ids <- sample(seq_len(nrow(analysis_data)))
-train_n <- floor(CFA_TRAIN_PROP * nrow(analysis_data))
-train_data <- analysis_data[row_ids[seq_len(train_n)], , drop = FALSE]
-test_data <- analysis_data[row_ids[(train_n + 1):length(row_ids)], , drop = FALSE]
-
-cv_models <- list(
-  list(name = "GAAIS two-factor", syntax = att_model, ordered = att_ordered),
-  list(name = "AI Literacy four-factor", syntax = comp_model_4f, ordered = comp_ordered)
-)
-
-cv_results <- purrr::map(cv_models, function(spec) {
-  train_fit <- fit_cfa_safely(spec$syntax, train_data, spec$ordered, paste0(spec$name, " train"))
-  test_fit <- fit_cfa_safely(spec$syntax, test_data, spec$ordered, paste0(spec$name, " test"))
-  list(
-    status = dplyr::bind_rows(
-      train_fit$status |> dplyr::mutate(sample = "Training"),
-      test_fit$status |> dplyr::mutate(sample = "Holdout")
-    ),
-    fit = dplyr::bind_rows(
-      extract_fit_safely(train_fit, spec$name, "Training"),
-      extract_fit_safely(test_fit, spec$name, "Holdout")
-    ),
-    loadings = dplyr::bind_rows(
-      loading_table_safely(train_fit, spec$name, "Training"),
-      loading_table_safely(test_fit, spec$name, "Holdout")
-    )
-  )
-})
-
-cv_status <- dplyr::bind_rows(purrr::map(cv_results, "status"))
-cv_fit <- dplyr::bind_rows(purrr::map(cv_results, "fit"))
-cv_loadings <- dplyr::bind_rows(purrr::map(cv_results, "loadings"))
-
-cv_fit_wide <- cv_fit |>
-  dplyr::filter(measure %in% c("cfi.scaled", "tli.scaled", "rmsea.scaled", "srmr")) |>
-  tidyr::pivot_wider(names_from = c(sample, measure), values_from = value)
-
-cv_loading_stability <- cv_loadings |>
-  dplyr::select(model, sample, factor, item, standardized_loading) |>
-  tidyr::pivot_wider(names_from = sample, values_from = standardized_loading) |>
-  dplyr::mutate(abs_loading_difference = abs(Training - Holdout))
-
-cv_decision <- cv_fit_wide |>
-  dplyr::mutate(
-    cfi_drop = `Training_cfi.scaled` - `Holdout_cfi.scaled`,
-    rmsea_increase = `Holdout_rmsea.scaled` - `Training_rmsea.scaled`,
-    srmr_increase = `Holdout_srmr` - `Training_srmr`,
-    possible_overfit = cfi_drop > .02 | rmsea_increase > .015 | srmr_increase > .015,
-    interpretation = dplyr::if_else(
-      possible_overfit,
-      "Material deterioration in the holdout sample suggests instability or possible overfitting.",
-      "Fit is reasonably stable across training and holdout samples; no strong evidence of overfitting."
-    )
-  )
-
-# Decision-oriented CFA applicability table.
-validity <- dplyr::bind_rows(lapply(results, reliability_cfa))
-
-# Latent correlations are especially important when a non-positive-definite
-# covariance matrix is reported.
-latent_correlations <- dplyr::bind_rows(lapply(results, function(res) {
-  if (is.null(res$fit) || !res$converged) return(tibble::tibble())
-  cor_lv <- tryCatch(lavaan::lavInspect(res$fit, "cor.lv"), error = function(e) NULL)
-  if (is.null(cor_lv)) return(tibble::tibble())
-  as.data.frame(as.table(cor_lv), stringsAsFactors = FALSE) |>
-    tibble::as_tibble() |>
-    dplyr::rename(factor_1 = Var1, factor_2 = Var2, correlation = Freq) |>
-    dplyr::filter(as.character(factor_1) < as.character(factor_2)) |>
-    dplyr::mutate(model = res$name, .before = 1)
-}))
-
-applicability <- factorability_summary |>
-  dplyr::mutate(
-    sample_to_item_ratio = n_complete / items,
-    kmo_adequate = kmo_overall >= .60,
-    bartlett_significant = bartlett_p < .05,
-    item_variance_adequate = min_item_variance > 0,
-    sample_size_adequate = n_complete >= 200 & sample_to_item_ratio >= 10,
-    cfa_applicable = kmo_adequate & bartlett_significant & item_variance_adequate & sample_size_adequate,
-    interpretation = dplyr::if_else(
-      cfa_applicable,
-      "CFA is applicable. Interpret fit, loadings, residuals, latent correlations, and holdout stability jointly.",
-      "CFA may be unstable or poorly identified; inspect failed criteria before interpreting fit."
-      "CFA is applicable; model adequacy still depends on convergence, admissibility, fit, and theoretically coherent loadings.",
-      "CFA prerequisites are not fully met; inspect the failed criteria before interpreting model fit."
-    )
-  )
-
-append_audit_log("CFA estimation", "ordinal CFA models",
-                 "Estimated full-sample models and 70/30 split-sample stability checks using WLSMV")
+# ---------------------------------------------------------------------------
+# Export
+# ---------------------------------------------------------------------------
 
 write_workbook_safely(
   list(
     Model_status = model_status,
-    Fit_indices = fit_summary,
+    Fit_comparison = fit_comparison,
+    Fit_long = fit_indices,
     Standardized_loadings = loadings,
     Latent_correlations = latent_correlations,
-    Reliability_AVE = validity,
-    CFA_applicability = applicability,
-    CV_model_status = cv_status,
-    CV_fit_indices = cv_fit,
-    CV_fit_decision = cv_decision,
-    CV_loading_stability = cv_loading_stability
+    Model_missing_rows = excluded_for_model_missingness
   ),
-  file.path(TABLE_DIR, "cfa_results.xlsx")
+  file.path(
+    TABLE_DIR,
+    "cfa_results_all_attention_subsamples.xlsx"
+  )
 )
-
-capture_model_summary <- function(fit_result, path) {
-  if (is.null(fit_result$fit)) {
-    writeLines(fit_result$status$warning_or_error, path)
-  } else {
-    capture.output(summary(fit_result$fit, fit.measures = TRUE, standardized = TRUE), file = path)
-  }
-}
-
-capture_model_summary(fit_att, file.path(MODEL_DIR, "cfa_gaais_summary.txt"))
-capture_model_summary(fit_comp_4f, file.path(MODEL_DIR, "cfa_ai_literacy_4factor_summary.txt"))
-capture_model_summary(fit_comp_second, file.path(MODEL_DIR, "cfa_ai_literacy_second_order_summary.txt"))
 
 saveRDS(
-  list(
-    attitudes = fit_att$fit,
-    competence_4factor = fit_comp_4f$fit,
-    competence_second_order = fit_comp_second$fit,
-    model_status = model_status,
-    cross_validation = cv_results
-  ),
-  file.path(MODEL_DIR, "cfa_fitted_models.rds")
+  all_results,
+  file.path(
+    MODEL_DIR,
+    "cfa_fitted_models_all_attention_subsamples.rds"
+  )
 )
-for (nm in names(results)) {
-  res <- results[[nm]]
-  outfile <- file.path(MODEL_DIR, paste0("cfa_", nm, "_summary.txt"))
-  if (is.null(res$fit)) {
-    writeLines(c("MODEL FAILED", paste0("Error: ", res$error), res$warnings), outfile)
-  } else {
-    capture.output(
-      summary(res$fit, fit.measures = res$converged, standardized = TRUE),
-      file = outfile
+
+append_audit_log(
+  action = "CFA estimation",
+  object = "Attitude and competence measurement models",
+  detail = paste0(
+    "Estimated the two-factor attitude model and four-factor competence model ",
+    "in all core observations and in three attention-check subsamples. ",
+    "Complete-case filtering was applied separately using only each model's ",
+    "indicator variables. Text summaries, fit tables, loadings, correlations, ",
+    "and plots were saved."
+  ),
+  rows_affected = nrow(analysis_data),
+  columns_affected = length(
+    unique(
+      c(
+        ATTITUDE_MODEL_ITEMS,
+        COMP_ALL_ITEMS
+      )
     )
-  }
-}
-
-saveRDS(
-  lapply(results, `[[`, "fit"),
-  file.path(MODEL_DIR, "cfa_fitted_models.rds")
+  )
 )
-
-# Continue the pipeline even if the optional second-order model is inadmissible.
-if (!results$attitudes$converged) warning("The GAAIS CFA did not converge; inspect cfa_results.xlsx and the model summary.")
-if (!results$competence_4f$converged) warning("The four-factor AI literacy CFA did not converge; inspect cfa_results.xlsx and the model summary.")
-if (!results$competence_second$admissible) message("The optional second-order AI competence model was not admissible and should not be interpreted.")
