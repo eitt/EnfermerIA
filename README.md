@@ -1,50 +1,151 @@
-# EnfermerIA: R analysis pipeline
+# EnfermerIA: pipeline psicométrico en R y playground en Streamlit
 
-This project analyzes `ds_all_2026_07_22.xlsx` and produces English-language tables and 300-dpi figures using a color-vision-deficiency-safe Okabe-Ito palette.
+Este proyecto analiza `ds_all_2026_07_22.xlsx` mediante un pipeline reproducible en R y una aplicación interactiva en Python/Streamlit. El pipeline genera tablas auditables, figuras en formato PNG y diagnósticos psicométricos para las escalas de actitudes hacia la IA y alfabetización en IA.
 
-## Source-based scale specification
+## Estructura de las escalas
 
-- **GAAIS:** two correlated subscales, Positive (12 items) and Negative (8 items). Negative items are reverse-scored so higher values indicate more favorable attitudes. The source does **not** recommend an overall mean. The pipeline therefore reports both subscales separately and creates a combined favorability index only for the requested quadrant visualization.
-- **AI Literacy Scale:** four first-order dimensions—Awareness, Usage, Evaluation, and Ethics—with 12 items. `AW_8`, `US_3`, and `ET_2` are reverse-worded. In the supplied variable structure, their `_r` suffix is treated as already reverse-scored. The pipeline also reconstructs `_raw` versions for documentation.
+- **GAAIS:** dos dimensiones correlacionadas: actitud positiva (12 ítems) y actitud negativa/preocupación (8 ítems). Las dimensiones se reportan por separado; no se recomienda interpretar una media global como factor confirmado.
+- **Alfabetización en IA:** cuatro dimensiones teóricas: Awareness, Usage, Evaluation y Ethics, con 12 ítems en total. Los ítems almacenados con sufijo `_r` se transforman en columnas de análisis mediante inversión Likert cuando corresponde.
+- **Cuadrantes:** la figura de actitudes utiliza cortes teóricos fijos en 3 para ambos ejes. No calcula los cortes a partir de la media o mediana de la muestra.
 
-## Project layout
+## Atención y muestras de análisis
 
-```text
-EnfermerIA_R_Pipeline/
-├── 00_run_pipeline.R
-├── README.md
-├── ds_all_2026_07_22.xlsx   # place the data here
-├── R/
-│   ├── 00_config.R
-│   ├── 01_utils.R
-│   ├── 02_import_clean.R
-│   ├── 03_descriptive.R
-│   ├── 04_psychometrics.R
-│   ├── 05_cfa.R
-│   └── 06_bivariate_quadrants.R
-└── outputs/                  # created automatically
+La clave validada en `R/00_config.R` es:
+
+```r
+ATTENTION_CORRECT_RESPONSES <- c(
+  ac_1 = 1,
+  ac_2 = 1,
+  ac_3 = 1,
+  ac_4 = 1
+)
 ```
 
-## Run
+La variable original `ac_total` no se sobrescribe. El pipeline calcula además `ac_total_recalculated` directamente desde `ac_1`--`ac_4`.
 
-Open the project root in RStudio and execute:
+Las muestras se definen así:
+
+| Muestra | Regla | Tamaño esperado | Uso |
+|---|---|---:|---|
+| `all_core` | Criterios de consentimiento/compromiso del núcleo | 1,211 | Análisis principal |
+| `fail_at_most_2` | Al menos 2 attention checks correctos | 1,073 | Sensibilidad |
+| `fail_at_most_1` | Al menos 3 correctos | 980 | Sensibilidad |
+| `pass_all_4` | Los 4 correctos | 823 | Sensibilidad estricta |
+
+La distribución esperada de `ac_total_recalculated` es:
+
+```text
+0 aciertos: 98
+1 acierto: 40
+2 aciertos: 93
+3 aciertos: 157
+4 aciertos: 823
+```
+
+Los attention checks no se utilizan para reemplazar automáticamente la muestra primaria. Las muestras de sensibilidad sirven para comprobar la estabilidad de confiabilidad, CFA, factorabilidad y decisiones psicométricas.
+
+## Ejecutar el pipeline R
+
+Desde la raíz del proyecto:
+
+```powershell
+Rscript 00_run_pipeline.R
+```
+
+Si `Rscript` no está en el `PATH` en Windows, usar la ruta de la instalación:
+
+```powershell
+& "C:\Program Files\R\R-4.6.1\bin\Rscript.exe" 00_run_pipeline.R
+```
+
+También puede ejecutarse desde RStudio:
 
 ```r
 source("00_run_pipeline.R")
 ```
 
-Missing packages are installed automatically. The main configuration options are in `R/00_config.R`, including consent filtering, attention-check threshold, figure dimensions, and mean-versus-median quadrant cuts.
+El pipeline guarda los mensajes de consola y advertencias en `outputs/logs/`.
 
-## Main outputs
+## Ejecutar el playground Streamlit
 
-- `outputs/tables/descriptive_statistics_all_variables.xlsx`
+Instalar las dependencias:
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+Iniciar la aplicación:
+
+```powershell
+streamlit run EnfermerIA_playground_main.py
+```
+
+La app permite cargar el Excel o CSV y contiene estas páginas:
+
+1. guía de datos y constructos;
+2. playground de filtros;
+3. diagnósticos descriptivos;
+4. explorador de correlaciones;
+5. playground CFA;
+6. cuadrantes de actitud positiva y preocupación negativa;
+7. exportación y auditoría;
+8. guía del pipeline y sensibilidad.
+
+## Cómo funcionan los filtros del playground
+
+- **Consentimiento = 1:** reproduce el criterio de inclusión principal del pipeline R.
+- **Compromiso = 1:** está desactivado por defecto porque `REQUIRE_COMMITMENT = FALSE` en la configuración R. Activarlo cambia la población objetivo y debe justificarse antes del análisis.
+- **Attention checks:** utiliza la clave recalculada y las cuatro muestras compatibles con R. La columna original `ac_total` se conserva para auditoría.
+- **Valores Likert fuera de 1--5:** se convierten en valores perdidos; no se elimina automáticamente toda la fila.
+- **Filas con respuestas insuficientes:** es un filtro exploratorio del playground y no equivale a la gestión de casos completos que realiza cada CFA.
+- **Inversión de ítems:** se crean columnas `__analysis` para preservar los valores originales y evitar inversiones silenciosas o dobles.
+
+Cada cambio de filtro produce una auditoría con las filas incluidas, excluidas y el motivo de exclusión. La app también exporta la validación de la clave y la distribución recalculada de `ac_total`.
+
+## Playground y análisis de sensibilidad
+
+Las comparaciones recomendadas son:
+
+1. `all_core` frente a los tres subsamples de attention checks;
+2. estimación continua frente a estimación ordinal/robusta;
+3. modelos CFA preespecificados de cuatro, tres y un factor para competencia;
+4. estabilidad de cargas, confiabilidad, correlaciones latentes y admisibilidad;
+5. diagnóstico de observaciones influyentes mediante residuos, distancia robusta, eliminación temporal y medidas tipo Cook.
+
+Una observación influyente no es automáticamente errónea. No se deben eliminar filas únicamente porque CFI aumente o RMSEA disminuya. La exclusión requiere evidencia independiente: duplicación, valores imposibles, incumplimiento de consentimiento, respuesta fuera de rango o una regla de calidad definida antes del análisis. Las decisiones influidas por el ajuste deben replicarse en otra muestra o en una partición confirmatoria.
+
+## CFA en R y playground en Python
+
+Los modelos finales se estiman y validan en R/lavaan. El playground Python usa `semopy` para exploración interactiva y no sustituye los resultados WLSMV/robustos del pipeline R.
+
+La app extrae los índices de `semopy` directamente desde las columnas devueltas por `calc_stats()`. CFI, TLI, RMSEA, GFI, AGFI, NFI y `chi2 p-value` deben interpretarse junto con convergencia, cargas, residuos y admisibilidad. Si una matriz de covarianzas latentes no es positiva definida, el modelo no debe interpretarse como confirmado aunque el optimizador reporte convergencia.
+
+## Outputs principales
+
+### Tablas
+
+- `outputs/tables/sample_and_missingness_audit.xlsx`
+- `outputs/tables/attention_check_recalculation.xlsx`
 - `outputs/tables/psychometric_diagnostics.xlsx`
-- `outputs/tables/cfa_results.xlsx`
-- `outputs/tables/bivariate_attitudes_competence.xlsx`
+- `outputs/tables/cfa_results_all_attention_subsamples.xlsx`
+- `outputs/tables/robustness_and_decisions.xlsx`
+- `outputs/tables/bivariate_positive_negative_attitudes.xlsx`
 - `outputs/analysis_data_scored.xlsx`
-- `outputs/figures/*.png` at 300 dpi
-- `outputs/models/*.txt` and fitted lavaan objects in `.rds`
 
-## CFA decision rule
+### Figuras
 
-The pipeline evaluates factorability using polychoric correlations, KMO, Bartlett's test, item variance, sample size, and the participant-to-item ratio. It then estimates ordinal CFA models with WLSMV. With approximately 1,211 observations and 20- and 12-item instruments, the sample size is ordinarily adequate; final applicability still depends on response variation, factorability, convergence, standardized loadings, residuals, and fit indices.
+Las figuras se guardan en `outputs/figures/` con resolución de 300 dpi. Incluyen distribuciones, correlaciones, análisis paralelo, cargas CFA, confiabilidad, admisibilidad, cuadrantes y comparaciones entre muestras.
+
+### Informe LaTeX
+
+El informe standalone se encuentra en:
+
+```text
+factorial_psychometric_report_standalone.tex
+```
+
+Utiliza las figuras de `figuras/` cuando se copia al proyecto de Overleaf. Incluye interpretación, guía de lectura, diccionario de variables, resultados actualizados y una sección sobre influencia de observaciones y análisis de sensibilidad.
+
+## Regla de interpretación psicométrica
+
+La factorización se evalúa con correlaciones apropiadas, KMO, Bartlett, variación de los ítems, tamaño muestral y proporción participante/ítem. La convergencia numérica no garantiza admisibilidad. Las matrices latentes no positivas definidas, correlaciones latentes superiores a uno, cargas muy bajas y confiabilidades débiles deben reportarse y auditarse, no ocultarse mediante eliminación post hoc.
